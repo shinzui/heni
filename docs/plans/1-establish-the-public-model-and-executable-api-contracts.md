@@ -11,6 +11,12 @@ provenance:
     model: "gpt-6-astra"
     harness: "codex-cli"
     at: 2026-10-24T14:33:08Z
+  revisions:
+    - model: "gpt-6.1-sol"
+      harness: "codex-cli"
+      at: 2026-10-24T15:01:22Z
+      mode: "implement"
+      note: "Implement public model, classification truth table, API consumers, and ordinary Cabal validation"
 ---
 
 # Establish the public model and executable API contracts
@@ -28,27 +34,29 @@ A library user can construct a deliberate mutation case and inspect why supplied
 ## Progress
 
 
-- [ ] M1: Ordinary Cabal builds the library and a small public-API consumer with the adopted Haskell conventions.
-- [ ] M2: A pure classifier rejects false detections and accounts for every defined outcome.
-- [ ] M3: Four representative case definitions compile through the public API, with documented ownership and extension contracts.
+- [x] M1 (2026-10-24; `cabal build heni:lib:heni` and exposed-only consumer compilation passed): Ordinary Cabal builds the library and a small public-API consumer with the adopted Haskell conventions.
+- [x] M2 (2026-10-24; 28 adversarial classifier scenarios plus ledger invariants passed): A pure classifier rejects false detections and accounts for every defined outcome.
+- [x] M3 (2026-10-24; four public construction trials and consumer label regression compile): Four representative case definitions compile through the public API, with documented ownership and extension contracts.
 
 
 ## Surprises & Discoveries
 
 
-None yet.
+The source corpus had containers 0.7 while Hackage and upstream tags report 0.8.1. Bounds admit both; initial execution uses the installed 0.7 and final bound testing remains in EP-9.
 
 
 ## Decision Log
 
 
-No implementation decisions yet; the approach below is the initial proposed contract.
+2026-10-24: Keep a single pure classifier with explicit validity precedence and a selected-ID ledger that rejects duplicates and fills missing results. Record framework neutrality and classifier ownership in [the boundary ADR](../adr/1-framework-neutral-core.md) and [the evidence ADR](../adr/2-evidence-owned-classification.md).
+
+2026-10-24: The maintainer selected BSD-3-Clause in this session; LICENSE and package metadata use that choice.
 
 
 ## Outcomes & Retrospective
 
 
-To be filled during implementation, including acceptance evidence, remaining limits, and friction triage.
+The core builds with GHC 9.12.4 and ordinary Cabal. `cabal test heni:heni-unit --test-show-details=direct` passes 28 classification scenarios plus API/label and ledger invariants; `cabal haddock heni` builds the initial API reference. Every required outcome has a counterexample fixture, including exact named attribution, timeouts, replay identity, control and baseline failures. Real mutation execution is deliberately deferred to the next owners; no fake runCampaign is exported. No implementation friction met the recording threshold. The two local ADRs distill package boundaries and evidence trust.
 
 
 ## Context and Orientation

@@ -10,6 +10,12 @@ provenance:
     model: "gpt-6-astra"
     harness: "codex-cli"
     at: 2026-10-24T14:32:47Z
+  revisions:
+    - model: "gpt-6.1-sol"
+      harness: "codex-cli"
+      at: 2026-10-24T15:01:22Z
+      mode: "implement"
+      note: "Begin implementation in dependency order with public model and classification contracts"
 ---
 
 # Bootstrap Heni for trustworthy mutation testing and Hackage release
@@ -49,8 +55,8 @@ Apply [core standards](mori://shinzui/haskell-jitsurei/docs/core-standards), [re
 
 | # | Title | Path | Hard Deps | Soft Deps | Status |
 | --- | --- | --- | --- | --- | --- |
-| 1 | Public model and executable API contracts | [docs/plans/1-establish-the-public-model-and-executable-api-contracts.md](../plans/1-establish-the-public-model-and-executable-api-contracts.md) | None | None | Not Started |
-| 2 | Isolated snapshots and checked mutations | [docs/plans/2-implement-isolated-snapshots-and-checked-mutations.md](../plans/2-implement-isolated-snapshots-and-checked-mutations.md) | EP-1 | None | Not Started |
+| 1 | Public model and executable API contracts | [docs/plans/1-establish-the-public-model-and-executable-api-contracts.md](../plans/1-establish-the-public-model-and-executable-api-contracts.md) | None | None | Complete |
+| 2 | Isolated snapshots and checked mutations | [docs/plans/2-implement-isolated-snapshots-and-checked-mutations.md](../plans/2-implement-isolated-snapshots-and-checked-mutations.md) | EP-1 | None | In Progress |
 | 3 | Bounded processes and cancellation | [docs/plans/3-supervise-bounded-processes-and-cancellation.md](../plans/3-supervise-bounded-processes-and-cancellation.md) | EP-1 | EP-2 | Not Started |
 | 4 | Baseline-to-report campaigns | [docs/plans/4-run-baseline-to-report-mutation-campaigns.md](../plans/4-run-baseline-to-report-mutation-campaigns.md) | EP-2, EP-3 | None | Not Started |
 | 5 | Strict manifests and shared CLI | [docs/plans/5-expose-strict-manifests-and-the-shared-cli.md](../plans/5-expose-strict-manifests-and-the-shared-cli.md) | EP-4 | None | Not Started |
@@ -110,13 +116,13 @@ Cross-plan ADR topics are package/public API boundaries (EP-1), snapshot and edi
 ## Progress
 
 
-Planning complete on 2026-10-24; implementation has not started. EP-1 is ready to begin. Other children await their hard prerequisites. RES-1 and RES-2 supply the use cases and ecosystem evidence. The remaining integration gates are the real serial cycle in EP-4, the combined CLI/library migration suite in EP-8, and extracted-source publication readiness in EP-9. No compiler compatibility, runtime performance, or migration savings have yet been measured.
+EP-1 completed on 2026-10-24 with ordinary Cabal build, 28 adversarial classification scenarios, API construction/label fixtures and Haddock. EP-2 is In Progress; EP-3 is also eligible after EP-1. Later children await their hard prerequisites. RES-1 and RES-2 supply the use cases and ecosystem evidence. The remaining integration gates are the real serial cycle in EP-4, the combined CLI/library migration suite in EP-8, and extracted-source publication readiness in EP-9. No compiler compatibility, runtime performance, or migration savings have yet been measured.
 
 
 ## Surprises & Discoveries
 
 
-None during implementation yet.
+The public model is executable and conservative: malformed or truncated evidence is infrastructure failure, not detection. Local ADRs now record the framework-neutral core and evidence-owned classifier. Initial compiler validation is macOS/GHC 9.12.4; the CI matrix has not yet run remotely.
 
 
 ## Decision Log

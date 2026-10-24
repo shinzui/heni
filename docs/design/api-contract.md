@@ -1,0 +1,46 @@
+# Public API and ownership
+
+The root `heni` library exposes `Test.Heni` and focused Case, Command,
+Expectation and Result modules. It has no test-framework dependency, mandatory
+terminal output, process exit, or repository-tool requirement. IDs, relative
+targets, budgets and selected ledgers have hidden constructors. Call
+`validateCase` and `validateCommand` before execution; their `ConfigError`
+names the rejected field. Case data and evidence use concrete strict records.
+
+The minimal construction sequence is visible in `test/api/Consumer.hs`: create
+IDs and a relative target, construct a `CaseDefinition`, validate it, then
+classify evidence. That fixture uses synthetic evidence only. It covers a
+replacement, textual patch catalogue, generated-code hook, and external
+diagnostic. The model also expresses named tests, replay, build rejection,
+unchanged controls and signal probes. No real runner is implemented by EP-1.
+
+`CaseDefinition` contains serializable data. `CaseHooks` holds trusted IO
+functions separately. `WorkspaceOps` supplies checked reads and writes; the
+workspace owner will add checked creation/deletion. Arbitrary IO can escape
+these operations: this is an API capability, not an OS sandbox. A custom
+evidence callback returns evidence or a rejection; it cannot return a verdict.
+The execution owner must preserve actual process outcome and all validity
+gates when interpreting custom evidence.
+
+The target execution API is:
+
+```haskell
+runCampaign :: RunOptions -> Campaign -> IO RunResult
+```
+
+The campaign owner defines these two argument types when real execution is
+available. RunOptions includes source/output locations, selection and a
+progress callback returning IO. The workspace owner supplies scoped immutable
+snapshots and independently checked changes. The process owner supplies actual
+outcomes, bounded logs and durations as StageEvidence. The campaign owner
+validates references, baselines and final accounting, then calls the pure
+classifier and summary. The adapter owner supplies versioned selection and
+replay evidence. The report owner writes explicit versioned codecs rather than
+deriving a wire contract from Haskell constructor spelling. The CLI renders the
+same RunResult and never classifies failures itself.
+
+Later owners may extend these records before publication; update the model
+tests and this contract together. The public import closure intentionally has
+no generic-lens label orphan; `test/api/Labels.hs` compiles a consumer's own
+overloaded label instance. The internal prelude exports only foundational
+types, following the scoped adaptation in [the boundary ADR](../adr/1-framework-neutral-core.md).

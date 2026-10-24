@@ -1,0 +1,72 @@
+cabal-version: 3.4
+name: heni
+version: 0.1.0.0
+synopsis: Deliberate mutation testing with attributable evidence
+description:
+  Run checked mutations in disposable workspaces and require precise
+  failure evidence from existing tests and commands.
+
+homepage: https://github.com/shinzui/heni
+bug-reports: https://github.com/shinzui/heni/issues
+license: BSD-3-Clause
+license-file: LICENSE
+author: Heni contributors
+category: Testing
+build-type: Simple
+tested-with: ghc ==9.12.4
+extra-doc-files:
+  CHANGELOG.md
+  README.md
+  docs/design/*.md
+
+source-repository head
+  type: git
+  location: https://github.com/shinzui/heni.git
+
+common common
+  default-language: GHC2024
+  default-extensions:
+    DeriveAnyClass
+    DuplicateRecordFields
+    OverloadedLabels
+    OverloadedStrings
+
+  ghc-options:
+    -Wall
+    -Wcompat
+    -Wincomplete-uni-patterns
+    -Wincomplete-record-updates
+
+  build-depends:
+    base >=4.21.2 && <4.22,
+    containers >=0.7 && <0.9,
+    text >=2.1.4 && <2.2,
+
+library
+  import: common
+  hs-source-dirs: src
+  exposed-modules:
+    Test.Heni
+    Test.Heni.Case
+    Test.Heni.Command
+    Test.Heni.Expectation
+    Test.Heni.Result
+
+  other-modules:
+    Test.Heni.Internal.Model
+    Test.Heni.Internal.Prelude
+
+test-suite heni-unit
+  import: common
+  type: exitcode-stdio-1.0
+  hs-source-dirs:
+    test/unit
+    test/api
+
+  main-is: Main.hs
+  other-modules:
+    Consumer
+    Labels
+
+  build-depends: heni
+  ghc-options: -threaded

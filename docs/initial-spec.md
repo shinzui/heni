@@ -351,7 +351,7 @@ failure diagnosis effort, and elapsed build/test time independently. The initial
 claim is reduced orchestration and more trustworthy verdicts; runtime speedups
 must be measured. Keep unsupported cases and integration costs in the results.
 
-Open design decisions include the minimum GHC matrix, license choice, exact
+The maintainer selected BSD-3-Clause on 2026-10-24. Open design decisions include the final GHC matrix, exact
 adapter output protocols, patch implementation, resource-hook API, and which
 report fields become stable in version 1. Resolve them with prototypes and real
 consumer evidence before committing to a broad public abstraction.
