@@ -63,7 +63,7 @@ Apply [core standards](mori://shinzui/haskell-jitsurei/docs/core-standards), [re
 | 6 | Named-test adapters, replay, crash evidence | [docs/plans/6-add-named-test-adapters-replay-and-crash-evidence.md](../plans/6-add-named-test-adapters-replay-and-crash-evidence.md) | EP-4 | EP-5 | Complete |
 | 7 | Resource-aware workers and verified reuse | [docs/plans/7-add-resource-aware-workers-and-verified-reuse.md](../plans/7-add-resource-aware-workers-and-verified-reuse.md) | EP-4 | EP-5 | Complete |
 | 8 | Representative migration and usability proof | [docs/plans/8-prove-representative-script-migration-and-usability.md](../plans/8-prove-representative-script-migration-and-usability.md) | EP-5, EP-6, EP-7 | None | Complete |
-| 9 | Portable packages and Hackage preparation | [docs/plans/9-validate-portable-packages-and-prepare-the-hackage-release.md](../plans/9-validate-portable-packages-and-prepare-the-hackage-release.md) | EP-8 | None | In Progress |
+| 9 | Portable packages and Hackage preparation | [docs/plans/9-validate-portable-packages-and-prepare-the-hackage-release.md](../plans/9-validate-portable-packages-and-prepare-the-hackage-release.md) | EP-8 | None | Complete |
 
 All hard dependencies name whole children and require Complete status. Status values are Not Started, In Progress, Complete, and Cancelled. Soft dependencies share useful context without blocking work.
 
@@ -116,14 +116,13 @@ Cross-plan ADR topics are package/public API boundaries (EP-1), snapshot and edi
 ## Progress
 
 
-EP-1 through EP-8 are Complete. The four migration families and richer
-named/replay/crash/resource trials passed through typed and CLI definitions,
-with measured orchestration/action/runtime evidence and retained artifacts.
-The final default suite passed every core, CLI, Tasty and Hspec target on
-macOS/GHC 9.12.4, including the process-group race regression. EP-9 is In Progress with the
-extracted-source, metadata and compatibility release-readiness gate. Historical
-survey, refreshed source identities and executable migration evidence are
-recorded separately; no fleet migration or publication occurred.
+All nine children are Complete. The four local migration families and richer
+evidence/resource trials passed through typed and CLI definitions. Both fresh
+archive gates completed 21 checks: macOS/GHC 9.12.4/Cabal 3.16.1.0 with lower
+bounds, and native arm64 Linux/GHC 9.12.4/Cabal 3.18.2.0 with newest admitted
+direct dependencies. Source/docs hashes, exact package versions, checks and
+limits are in [release readiness](../validation/release-readiness.md).
+No Hackage upload/publication or actual consumer migration occurred.
 
 
 ## Surprises & Discoveries
@@ -137,6 +136,14 @@ transient macOS group-exit observation issues; all were fixed in their owners
 with regression checks. FRIC-3 records the cross-package Cabal test cycle; an
 explicit integration script preserves independent core tests. ADR 9 records
 the migration/domain boundary and limits of automated measurement.
+
+Release proof exposed Cabal transport/tool-path requirements (FRIC-4), hidden
+Haddock instance-origin links (FRIC-5) and older Cabal show-option behavior
+(FRIC-6). The release gate retains required native/TLS tools, checks a supported
+released Cabal up front and selectively generates non-exposed definition pages.
+Together with FRIC-3, recurring Cabal friction is captured in the integration
+boundary and release policy rather than hidden dependencies. All are triaged
+accepted; no external reports were sent.
 
 ## Decision Log
 
@@ -153,4 +160,21 @@ the migration/domain boundary and limits of automated measurement.
 ## Outcomes & Retrospective
 
 
-To be filled during implementation. At completion, distill durable lessons into local ADRs, triage initiative-level friction, and report supported and unsupported migration patterns with measured evidence.
+The bootstrap is implemented and locally release-ready within the advertised
+GHC 9.12.4/arm64 Linux/macOS scope. The framework-neutral core, thin CLI,
+optional reporters, checked workspaces, single classifier, scoped resources and
+conservative reuse are verified together from immutable source archives. Four
+representative patterns need manifests or short typed definitions plus retained
+domain helpers; measured fixture results are separated from historical research
+and human-usability claims.
+
+ADRs 1–10 preserve all durable child decisions. All six friction entries are
+triaged accepted. Recurring Cabal surfaces (FRIC-3/4/6) led to explicit test/tool
+boundaries; FRIC-5 led to documentation link validation. Source/docs candidate
+hashes and the exact passed/not-run matrix are in the readiness bundle.
+
+The separate handoff is Hackage account/name verification, candidate source/docs
+upload and rendered/installability review before publication, followed by
+consumer-owned migrations with live-resource acceptance. Wider compilers,
+other architectures, Windows, distributed execution, persistent verdict caches,
+automatic AST mutations and universal build invalidation are not claimed.

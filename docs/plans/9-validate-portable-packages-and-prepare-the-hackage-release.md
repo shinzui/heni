@@ -35,8 +35,8 @@ A user outside this repository can build and run Heni from its source archives u
 
 
 - [x] (2026-10-24) M1: Supported OS/compiler/dependency combinations and package metadata are verified.
-- [ ] M2: Extracted source archives build, test, document, and run standalone consumer examples without repository-only infrastructure.
-- [ ] M3: Release-readiness evidence, documentation, and local candidate artifacts are complete for a later publication action.
+- [x] (2026-10-24) M2: Extracted source archives build, test, document, and run standalone consumer examples without repository-only infrastructure.
+- [x] (2026-10-24) M3: Release-readiness evidence, documentation, and local candidate artifacts are complete for a later publication action.
 
 
 ## Surprises & Discoveries
@@ -67,8 +67,8 @@ rather than described as absent.
 2026-10-24: Full core/CLI/Tasty/Hspec suites passed on native arm64 Linux
 (Debian 12 official image, GHC 9.12.4, Cabal 3.14.1.1). macOS suites passed
 on GHC 9.12.4/Cabal 3.16.1.0. The initial core archive also passed without Git,
-Nix, Mori, OKF or Python in its executable search path. Final immutable archive
-validation remains in progress; the published matrix distinguishes these runs.
+Nix, Mori, OKF or Python in its executable search path. At that checkpoint, final immutable archive
+validation remained pending; the completed results are in Outcomes.
 
 2026-10-24: Native Linux archive validation required assembler/linker variants
 reported by `ghc --info`, and curl for Cabal's TLS transport. Without curl,
@@ -94,8 +94,8 @@ configuration remains distinct from locally executed archive evidence.
 2026-10-24: The final schema check exposed missing forwarding of the resource
 fixture output variable to the CLI suite that emits it. That helper mapping is
 corrected, and an explicitly diagnostic tail run passed schema, no-Git version,
-help and standalone library/CLI 0/1/2 checks. Acceptance still requires a fresh
-complete run of the rebuilt archives.
+help and standalone library/CLI 0/1/2 checks. Those diagnostic results were not acceptance; the rebuilt archives later
+passed fresh complete runs as recorded in Outcomes.
 
 2026-10-24: Cabal 3.14.1.1 did not generate the requested definition pages;
 Cabal 3.18.2.0 did on the same extracted source/GHC/Haddock. FRIC-6 is accepted:
@@ -124,7 +124,27 @@ Keep candidate uploads/account authorization/publication as later actions.
 ## Outcomes & Retrospective
 
 
-To be filled during implementation, including acceptance evidence, remaining limits, and friction triage.
+All 21 archive checks passed on each of aarch64 macOS/GHC 9.12.4/Cabal
+3.16.1.0 with explicit lower bounds and aarch64 Linux/GHC 9.12.4/Cabal
+3.18.2.0 with newest admitted direct dependencies. The immutable source
+candidate is `bc25243d6fd84eb35aa444e407cce8ed86c69b3f`. Source/docs hashes,
+full version/check records and known limits are recorded in
+[release readiness](../validation/release-readiness.md) and its JSON evidence.
+Both runs used fresh extractions, core-only restricted tool paths, explicit Git
+patch validation, CLI/core archive pairing, optional reporter suites, actual
+framework manifests, full Haddock/link checks, schema agreement, standalone
+library/CLI 0/1/2 contracts and all migration families. A copied Linux report
+rendered on macOS. Task-owned Linux container/VM were stopped after evidence
+was copied; consumer environments were unchanged.
+
+README, quickstart, migration/CLI/troubleshooting guides, schemas, maintainer-
+selected BSD-3-Clause metadata, changelogs and release handoff are complete.
+ADRs 1–10 distill the initiative; ADR 10 records the source-archive/release
+boundary. FRIC-4, FRIC-5 and FRIC-6 are accepted with tested TLS/tooling,
+documentation and Cabal-version mitigations. Strict friction and Mori validation
+passed. Remote CI, untested matrix combinations, wider compilers/architectures,
+Hackage account authorization, candidate upload/rendered review and publication
+remain explicitly separate later actions, not completed claims.
 
 
 ## Context and Orientation
