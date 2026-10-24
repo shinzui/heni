@@ -103,8 +103,7 @@
         ${config.pre-commit.installationScript}
       '';
 
-      runtimeLibraries = [ pkgs.zlib ]
-      ;
+      runtimeLibraries = [ pkgs.zlib ];
       runtimeShell =
         assert lib.assertMsg (inputs.haskell-nix.lib ? mkProjectDevShell && hsdev ? mkProjectShell)
           "haskellProject.runtime requires the published retained-runtime shell APIs";
@@ -153,10 +152,13 @@
         inherit applicationScope;
         packageSetIdentity = if runtimeEnabled then runtimeShell.packageSetIdentity else null;
         ownPackages = [ "heni" ];
-        applicationOverlays = [ (final: _prev: {
-          "heni" = final.callCabal2nix "heni"
-            (if project.packageSource == null then inputs.self else project.packageSource) { };
-        }) ];
+        applicationOverlays = [
+          (final: _prev: {
+            "heni" = final.callCabal2nix "heni"
+              (if project.packageSource == null then inputs.self else project.packageSource)
+              { };
+          })
+        ];
       };
       packages.default = applicationScope."heni";
       devShells.default = primaryShell;

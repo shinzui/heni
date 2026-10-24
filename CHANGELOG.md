@@ -1,4 +1,6 @@
-# 0.1.0.0 (unreleased)
+# 0.1.0.0 — 2026-10-24
+
+## New Features
 
 Initial framework-neutral mutation campaigns with checked edits, immutable
 source snapshots, bounded POSIX processes, precise classification, strict JSON
