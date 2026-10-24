@@ -28,9 +28,12 @@ The target execution API is:
 runCampaign :: RunOptions -> Campaign -> IO RunResult
 ```
 
-The campaign owner defines these two argument types when real execution is
-available. RunOptions includes source/output locations, selection and a
-progress callback returning IO. The workspace owner supplies scoped immutable
+These argument types now live in `Test.Heni.Runner`. `mkCampaign` validates
+commands, references and custom edit registrations. RunOptions includes
+source/output locations, selection, an IO progress callback, and a cleanup hook
+for each baseline/candidate workspace. Command.sensitiveArguments marks
+zero-based argv indexes for report redaction; environment values are always
+redacted from portable configuration. The workspace owner supplies scoped immutable
 snapshots and independently checked changes. The process owner supplies actual
 outcomes, bounded logs and durations as StageEvidence. The campaign owner
 validates references, baselines and final accounting, then calls the pure

@@ -39,3 +39,12 @@ mori://haskell/directory source was absent (FRIC-1 in docs/friction-log), so
 System.Directory was inspected from the official v1.3.10.1 tag. Unix and
 filepath had no owning registry entries; official tagged source was used for
 POSIX file status, temporary directories, signal groups and path operations.
+
+Report support uses released aeson 2.3.2.0, verified against Hackage preferred
+versions and upstream tag `v2.3.2.0` at
+`682162c66d26a770fbfb6271c797e646bc5c4f2e`. Mori source inspection at
+mori://haskell/aeson covered explicit object codecs and the exposed JSON token
+stream; token validation rejects duplicate keys before map conversion. The
+development-only schema checker uses jsonschema 4.26.0, verified against PyPI
+and upstream `v4.26.0` at `c87a92202e986be7e3ae0db992cdc2608bbfd815`.
+The Haskell runtime does not depend on that Python tooling.

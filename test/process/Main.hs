@@ -4,6 +4,7 @@ import Control.Concurrent
 import Control.Exception
 import Control.Monad (forM_, unless)
 import Data.ByteString qualified as BS
+import Data.Set qualified as Set
 import Data.Text qualified as Text
 import System.Directory qualified as Dir
 import System.FilePath ((</>))
@@ -23,7 +24,7 @@ checked :: (Show e) => Either e a -> a
 checked = either (error . show) id
 
 command :: [String] -> Int -> Command
-command args micros = Command "heni-fixture" args Nothing [] (checked (mkStageBudget micros)) (OutputPolicy 1024)
+command args micros = Command "heni-fixture" args Set.empty Nothing [] (checked (mkStageBudget micros)) (OutputPolicy 1024)
 
 main :: IO ()
 main = do
@@ -38,7 +39,7 @@ suite = bracket (Dir.getTemporaryDirectory >>= \tmp -> mkdtemp (tmp </> "heni-pr
           ProcessOptions d p g _ e observer -> ProcessOptions d p g ["exact-witness"] e observer
         run prefix args micros = runCommand (opts prefix) workspace Test (command args micros)
         outcomeOf ProcessReport {evidence = StageEvidence {outcome}} = outcome
-    missing <- runCommand (opts "missing") workspace Test (Command "heni-definitely-absent" [] Nothing [] (checked (mkStageBudget 100000)) (OutputPolicy 100))
+    missing <- runCommand (opts "missing") workspace Test (Command "heni-definitely-absent" [] Set.empty Nothing [] (checked (mkStageBudget 100000)) (OutputPolicy 100))
     assert' "launch failure" (case outcomeOf missing of LaunchFailed {} -> True; _ -> False)
     exited <- run "exit" ["exit", "1"] 1000000
     assert' "exit differs from signal" (outcomeOf exited == Exited 1)

@@ -1,0 +1,728 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/shinzui/heni/master/schemas/report-v1.schema.json",
+  "title": "Heni report v1",
+  "type": "object",
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "toolVersion": {
+      "type": "string"
+    },
+    "metadata": {
+      "$ref": "#/$defs/metadata"
+    },
+    "result": {
+      "$ref": "#/$defs/result"
+    }
+  },
+  "required": [
+    "schemaVersion",
+    "toolVersion",
+    "metadata",
+    "result"
+  ],
+  "additionalProperties": false,
+  "$defs": {
+    "stageName": {
+      "type": "string",
+      "enum": [
+        "setup",
+        "build",
+        "test",
+        "replay",
+        "teardown"
+      ]
+    },
+    "processOutcome": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "exit"
+            },
+            "code": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          "required": [
+            "kind",
+            "code"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "signal"
+            },
+            "signal": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          "required": [
+            "kind",
+            "signal"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "timeout"
+            }
+          },
+          "required": [
+            "kind"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "cancelled"
+            }
+          },
+          "required": [
+            "kind"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "launch-failed"
+            },
+            "message": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "message"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "selection": {
+      "type": "object",
+      "properties": {
+        "discovered": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "selected": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "executed": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "executedIds": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "uniqueItems": true
+        },
+        "failedIds": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "uniqueItems": true
+        },
+        "skippedIds": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "uniqueItems": true
+        },
+        "setupErrors": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "discovered",
+        "selected",
+        "executed",
+        "executedIds",
+        "failedIds",
+        "skippedIds",
+        "setupErrors"
+      ],
+      "additionalProperties": false
+    },
+    "replay": {
+      "type": "object",
+      "properties": {
+        "token": {
+          "type": "string"
+        },
+        "generator": {
+          "type": "string"
+        },
+        "failures": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "uniqueItems": true
+        }
+      },
+      "required": [
+        "token",
+        "generator",
+        "failures"
+      ],
+      "additionalProperties": false
+    },
+    "stage": {
+      "type": "object",
+      "properties": {
+        "stage": {
+          "$ref": "#/$defs/stageName"
+        },
+        "outcome": {
+          "$ref": "#/$defs/processOutcome"
+        },
+        "witnesses": {
+          "type": "string"
+        },
+        "evidenceUnavailable": {
+          "type": "boolean"
+        },
+        "selection": {
+          "$ref": "#/$defs/selection"
+        },
+        "replay": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/replay"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "durationSeconds": {
+          "type": "number",
+          "minimum": 0
+        },
+        "logPaths": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "^(?!/)(?!.*(?:^|/)\\.{1,2}(?:/|$))(?!.*//)(?!.*[\\\\:\\u0000]).+$"
+          }
+        }
+      },
+      "required": [
+        "stage",
+        "outcome",
+        "witnesses",
+        "evidenceUnavailable",
+        "selection",
+        "replay",
+        "durationSeconds",
+        "logPaths"
+      ],
+      "additionalProperties": false
+    },
+    "baseline": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "passed"
+            }
+          },
+          "required": [
+            "kind"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "unavailable"
+            }
+          },
+          "required": [
+            "kind"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "failed"
+            },
+            "message": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "message"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "mutation": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "changed"
+            }
+          },
+          "required": [
+            "kind"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "unchanged"
+            }
+          },
+          "required": [
+            "kind"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "rejected"
+            },
+            "message": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "message"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "caseEvidence": {
+      "type": "object",
+      "properties": {
+        "baseline": {
+          "$ref": "#/$defs/baseline"
+        },
+        "mutation": {
+          "$ref": "#/$defs/mutation"
+        },
+        "stages": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/stage"
+          }
+        },
+        "infrastructureErrors": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "cleanupErrors": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "stopped": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "baseline",
+        "mutation",
+        "stages",
+        "infrastructureErrors",
+        "cleanupErrors",
+        "stopped"
+      ],
+      "additionalProperties": false
+    },
+    "caseResult": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_.-]+$"
+        },
+        "verdict": {
+          "type": "string",
+          "enum": [
+            "caught",
+            "survived",
+            "invalid-mutation",
+            "uncovered",
+            "unexpected-build-failure",
+            "wrong-failure",
+            "timed-out",
+            "infrastructure-error",
+            "not-run"
+          ]
+        },
+        "detection": {
+          "anyOf": [
+            {
+              "type": "string",
+              "enum": [
+                "semantic-named",
+                "generic-diagnostic",
+                "expected-build-rejection",
+                "explicit-crash",
+                "control-passed"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "semantic": {
+          "type": "boolean"
+        },
+        "control": {
+          "type": "boolean"
+        },
+        "reason": {
+          "type": "string"
+        },
+        "evidence": {
+          "$ref": "#/$defs/caseEvidence"
+        }
+      },
+      "required": [
+        "id",
+        "verdict",
+        "detection",
+        "semantic",
+        "control",
+        "reason",
+        "evidence"
+      ],
+      "additionalProperties": false
+    },
+    "failure": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "baseline"
+            },
+            "affected": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9_.-]+$"
+              }
+            },
+            "message": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "affected",
+            "message"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "control"
+            },
+            "id": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9_.-]+$"
+            },
+            "message": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "id",
+            "message"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "infrastructure"
+            },
+            "message": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "message"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "interrupted"
+            },
+            "message": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "message"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "score": {
+      "type": "object",
+      "properties": {
+        "caught": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "total": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "complete": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "caught",
+        "total",
+        "complete"
+      ],
+      "additionalProperties": false
+    },
+    "result": {
+      "type": "object",
+      "properties": {
+        "selectedIds": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_.-]+$"
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "cases": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/caseResult"
+          },
+          "minItems": 1
+        },
+        "failures": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/failure"
+          }
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "passed",
+            "failed",
+            "untrustworthy",
+            "interrupted"
+          ]
+        },
+        "semanticScore": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/score"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "selectedIds",
+        "cases",
+        "failures",
+        "status",
+        "semanticScore"
+      ],
+      "additionalProperties": false
+    },
+    "metadata": {
+      "type": "object",
+      "properties": {
+        "platform": {
+          "type": "object",
+          "properties": {
+            "os": {
+              "type": "string"
+            },
+            "arch": {
+              "type": "string"
+            },
+            "compiler": {
+              "type": "string"
+            },
+            "compilerVersion": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "os",
+            "arch",
+            "compiler",
+            "compilerVersion"
+          ],
+          "additionalProperties": false
+        },
+        "sourcePolicy": {
+          "type": "string"
+        },
+        "commands": {
+          "type": "object"
+        },
+        "definitions": {
+          "type": "array"
+        },
+        "caseDetails": {
+          "type": "object"
+        },
+        "resources": {
+          "type": "array"
+        },
+        "snapshot": {
+          "type": "object",
+          "properties": {
+            "identity": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "policy": {
+              "type": "object",
+              "properties": {
+                "includes": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1,
+                    "pattern": "^(?!/)(?!.*(?:^|/)\\.{1,2}(?:/|$))(?!.*//)(?!.*[\\\\:\\u0000]).+$"
+                  }
+                },
+                "excludes": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1,
+                    "pattern": "^(?!/)(?!.*(?:^|/)\\.{1,2}(?:/|$))(?!.*//)(?!.*[\\\\:\\u0000]).+$"
+                  }
+                },
+                "defaultExcludedNames": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "defaultExcludedPrefixes": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              },
+              "required": [
+                "includes",
+                "excludes",
+                "defaultExcludedNames",
+                "defaultExcludedPrefixes"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "identity",
+            "policy"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "platform",
+        "sourcePolicy",
+        "commands",
+        "definitions",
+        "caseDetails",
+        "resources"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

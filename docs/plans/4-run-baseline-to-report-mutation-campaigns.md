@@ -11,6 +11,12 @@ provenance:
     model: "gpt-6-astra"
     harness: "codex-cli"
     at: 2026-10-24T14:33:08Z
+  revisions:
+    - model: "gpt-6.1-sol"
+      harness: "codex-cli"
+      at: 2026-10-24T15:26:19Z
+      mode: "implement"
+      note: "Integrate real baseline/candidate execution with portable reports, selected ledger, and journal recovery"
 ---
 
 # Run baseline-to-report mutation campaigns
@@ -28,27 +34,31 @@ A user can execute a real curated mutation from the Haskell library and obtain a
 ## Progress
 
 
-- [ ] M1: A real replacement case completes the unchanged-baseline-to-report path through public library calls.
-- [ ] M2: Baselines, controls, stage rules, and all selected-case outcomes resist false attribution.
-- [ ] M3: Incremental evidence and atomic summaries remain inspectable after failure or interruption.
+- [x] M1 (2026-10-24; real standalone Cabal guard/survivor/compile-error cycle passed): A real replacement case completes the unchanged-baseline-to-report path through public library calls.
+- [x] M2 (2026-10-24; lifecycle, control, timeout, patch, baseline, cleanup and cancellation checks passed): Baselines, controls, stage rules, and all selected-case outcomes resist false attribution.
+- [x] M3 (2026-10-24; report round trip/move, strict token decoding, journal recovery and write-failure checks passed): Incremental evidence and atomic summaries remain inspectable after failure or interruption.
 
 
 ## Surprises & Discoveries
 
 
-None yet.
+Aeson normally discards duplicate object keys during map conversion. The shared decoder now checks its original token stream, including escaped-equivalent keys, before constructing values. Integration also showed that normal cancellation must retain Cancelled evidence without being relabeled as an infrastructure failure solely because the caller requested interruption.
 
 
 ## Decision Log
 
 
-No implementation decisions yet; the approach below is the initial proposed contract.
+2026-10-24: Journal sequenced complete ledger snapshots after observations, then atomically rename the final report. Recovery is read-only and explicitly untrustworthy; only an unfinished end-of-input suffix is tolerated.
+
+2026-10-24: Keep exact witnesses separate from capped raw logs. Baselines and candidates use the same stage-evidence validator; hooks can enrich selection/replay but cannot replace actual outcomes or witnesses. Preserve primary and secondary finalizer exceptions so cleanup cannot swallow cancellation.
+
+2026-10-24: Match existing maintainer metadata from mori://shinzui/keiro/packages/keiro-core and mori://shinzui/shibuya/packages/shibuya-core as requested: Nadeem Bitar, nadeem@gmail.com. The separately selected license remains BSD-3-Clause.
 
 
 ## Outcomes & Retrospective
 
 
-To be filled during implementation, including acceptance evidence, remaining limits, and friction triage.
+The first real library campaign is accepted. `cabal run heni:exe:heni-library-example -- --output .heni-runs/library-smoke` produced caught, survived and unexpected-build-failure from actual Cabal builds/tests with unchanged source bytes. All four core test suites pass; the runner suite additionally exercises supervised Git patches, baseline and control failures, no named selection, wrong diagnostics, timeout, observer/cleanup/final-write failures, interrupted active/queued accounting, report redaction, moved directories, missing baseline logs, truncated final journal records and interior/semantic corruption. The emitted report passes the published Draft 2020-12 schema through jsonschema 4.26.0. Ownership/recovery decisions are distilled in docs/adr/5-campaign-ledger-and-report-trust.md. No friction met the recording threshold. Framework evidence, replay execution, scheduling and release-matrix proof remain with later owners.
 
 
 ## Context and Orientation
@@ -58,7 +68,7 @@ The hard prerequisites are `docs/plans/2-implement-isolated-snapshots-and-checke
 
 A run ledger is the full ordered selected-case list and its current states; it is the source for exactly one final record per selected ID. A journal is an append-only sequence of completed observations that survives before final report writing. Atomic finalization means write a complete new summary and rename it into place, rather than allowing readers to see a half-written JSON document. It does not promise durability against arbitrary storage or power failures.
 
-No Heni ADR existed at creation. Read the actual local architecture, workspace, and process ADRs created by prerequisites and link their paths here when starting. The relevant external boundary is [library-owned behavior](mori://shinzui/keiro/okf/adrs/concepts/ADR-28): the runner and classifier remain reusable without CLI exits or mandatory terminal output.
+The prerequisites establish [public boundaries](../adr/1-framework-neutral-core.md), [classification](../adr/2-evidence-owned-classification.md), [workspaces](../adr/3-immutable-snapshots-and-staged-edits.md) and [process ownership](../adr/4-posix-process-ownership.md). The relevant external boundary is [library-owned behavior](mori://shinzui/keiro/okf/adrs/concepts/ADR-28): the runner and classifier remain reusable without CLI exits or mandatory terminal output.
 
 
 ## Plan of Work

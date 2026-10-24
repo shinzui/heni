@@ -46,7 +46,8 @@ withTree action = bracket (Dir.getTemporaryDirectory >>= \tmp -> mkdtemp (tmp </
 -- Test-only bounded helper until EP-3 supplies the production supervisor. Git
 -- doesn't spawn descendants for apply; timeout cancels its process bracket.
 gitRunner :: PatchRunner
-gitRunner root args = do
+gitRunner workspace args = do
+  let root = workspaceRoot workspace
   result <- timeout 5000000 (Process.readCreateProcessWithExitCode (Process.proc "git" ("-C" : root : args)) "")
   pure $ case result of
     Just (ExitSuccess, _, _) -> Right ()

@@ -18,8 +18,24 @@ name and command: `heni`.
 
 ## Project status
 
-Heni is in the specification stage. This repository currently contains the
-initial design and research; the Haskell library and executable are planned.
+Heni is under active development. The library runs checked mutations in fresh
+workspaces with bounded subprocesses, precise classification and portable
+reports. The CLI, framework adapters and release gates are tracked by
+[the bootstrap plan](docs/masterplans/1-bootstrap-heni-for-trustworthy-mutation-testing-and-hackage-release.md).
+No Hackage release is published by this work.
+
+Run the standalone Cabal fixture through the library from this checkout:
+
+```sh
+cabal test all --test-show-details=direct
+cabal run heni:exe:heni-library-example -- --output .heni-runs/example
+```
+
+Use a new output directory for each run. The example deliberately demonstrates
+one caught mutation, one survivor and one unrelated compile failure. Source
+bytes remain unchanged. See [the API contract](docs/design/api-contract.md),
+[classification](docs/design/classification.md) and
+[report recovery](docs/design/reports.md) for the current guarantees.
 
 The publication goal is two Hackage packages:
 

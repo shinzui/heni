@@ -30,6 +30,21 @@ data FileEntry = FileEntry {bytes :: !BS.ByteString, executableBits :: !Int}
 
 type Inventory = Map.Map RelativeTarget FileEntry
 
+-- | Preserve both exceptions when disposal fails after an action already failed.
+data WorkspaceFinalizationError = WorkspaceFinalizationError !(Maybe SomeException) !SomeException
+  deriving stock (Show)
+  deriving anyclass (Exception)
+
+withFinalizer :: forall a. IO a -> IO () -> IO a
+withFinalizer action release = mask $ \restore -> do
+  primary <- try (restore action) :: IO (Either SomeException a)
+  secondary <- try release :: IO (Either SomeException ())
+  case (primary, secondary) of
+    (Right value, Right ()) -> pure value
+    (Left e, Right ()) -> throwIO e
+    (Right _, Left e) -> throwIO (WorkspaceFinalizationError Nothing e)
+    (Left first, Left second) -> throwIO (WorkspaceFinalizationError (Just first) second)
+
 digest :: BS.ByteString -> Text
 digest = Text.pack . show . (hash :: BS.ByteString -> Digest SHA256)
 
@@ -43,7 +58,9 @@ inventoryDigest policy files =
       <> BS.concat [framed (Text.encodeUtf8 (Text.pack (targetPath p))) <> framed (B8.pack (show mode)) <> framed b | (p, FileEntry b mode) <- Map.toAscList files]
 
 withOwnedDirectory :: String -> (FilePath -> IO a) -> IO a
-withOwnedDirectory prefix action = bracket allocate Dir.removePathForcibly action
+withOwnedDirectory prefix action = mask $ \restore -> do
+  root <- allocate
+  withFinalizer (restore (action root)) (Dir.removePathForcibly root)
   where
     allocate = do
       temp <- Dir.getTemporaryDirectory >>= Dir.canonicalizePath

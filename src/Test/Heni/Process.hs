@@ -171,9 +171,9 @@ runCommand ProcessOptions {logDirectory, logPrefix, graceBudget, witnesses, envi
               -- display decoding of malformed UTF-8 must never invent a match.
               outputText = Text.intercalate "\n" found
               secondary = shutdown ++ outErrors ++ errErrors ++ either (\e -> [Text.pack (show e)]) (const []) flushResult
-              primaryErrors = either (\e -> [Text.pack (displayException e)]) (const []) primary
+              primaryErrors = either (\e -> case fromException e :: Maybe SomeAsyncException of Just _ -> []; Nothing -> [Text.pack (displayException e)]) (const []) primary
               outcome = either (const Cancelled) id primary
-              unavailable = not (null (primaryErrors ++ secondary)) || any (`notElem` found) witnesses && any captureTruncated [outCapture, errCapture]
+              unavailable = not (null (primaryErrors ++ secondary))
               stageEvidence = StageEvidence stage outcome outputText unavailable unknownSelection Nothing (fromIntegral (ended - started) / 1e9) [logPrefix ++ ".stdout.log", logPrefix ++ ".stderr.log"]
               result = ProcessReport stageEvidence [artifact Stdout outCapture, artifact Stderr errCapture] found (primaryErrors ++ secondary)
           case primary of

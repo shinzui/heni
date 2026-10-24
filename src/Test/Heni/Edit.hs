@@ -40,7 +40,7 @@ newtype EditEvidence = EditEvidence {changes :: [FileChange]}
 
 -- | Inject the common supervisor for optional Git. It must bound and reap children.
 -- Arguments are passed literally; the runner supplies its workspace as cwd.
-type PatchRunner = FilePath -> [String] -> IO (Either Text ())
+type PatchRunner = Workspace -> [String] -> IO (Either Text ())
 
 -- | Checked trusted-IO capabilities. Writes require existing files; creation and
 -- deletion have explicit byte preconditions and reject runner-owned paths.
@@ -119,7 +119,7 @@ withEditedWorkspace runPatch hooks snapshot definition action =
             let patchFile = scratch ++ "/candidate.patch"
             BS.writeFile patchFile (Text.encodeUtf8 content)
             forM_ [["apply", "--check", "--", patchFile], ["apply", "--", patchFile]] $ \args -> do
-              result <- runPatch (workspaceRoot workspace) args
+              result <- runPatch workspace args
               either (throwIO . InvalidEdit) pure result
 
 patchTargets :: Text -> Either Text [RelativeTarget]

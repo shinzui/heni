@@ -98,6 +98,7 @@ data OutputPolicy = OutputPolicy {limitBytes :: !Int}
 data Command = Command
   { executable :: !FilePath,
     arguments :: ![String],
+    sensitiveArguments :: !(Set Int),
     workingDirectory :: !(Maybe RelativeTarget),
     environment :: ![(String, String)],
     budget :: !StageBudget,

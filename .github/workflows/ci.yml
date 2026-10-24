@@ -7,6 +7,8 @@ jobs:
         os: [ubuntu-latest, macos-latest]
         ghc: ['9.12.4']
     runs-on: ${{ matrix.os }}
+    env:
+      HENI_SCHEMA_REPORT: .heni-runs/report-schema-fixture.json
     steps:
       - uses: actions/checkout@v4
       - uses: haskell-actions/setup@v2
@@ -16,4 +18,6 @@ jobs:
       - run: cabal update
       - run: cabal build all --enable-tests
       - run: cabal test all --test-show-details=direct
+      - run: python3 -m pip install jsonschema==4.26.0
+      - run: python3 scripts/check-schemas.py .heni-runs/report-schema-fixture.json
       - run: cabal haddock all

@@ -12,6 +12,7 @@ module Test.Heni.Result
     RunResult (..),
     classifyCase,
     summarizeRun,
+    validateStageEvidence,
   )
 where
 
@@ -101,6 +102,12 @@ stageInfrastructure StageEvidence {stage, outcome, truncated, selection = Select
     exceeds (Just a) (Just b) = a > b
     exceeds _ _ = False
     invalidIds = not (failedIds `Set.isSubsetOf` executedIds) || not (Set.null (Set.intersection executedIds skippedIds))
+
+-- | Shared protocol/validity check for unchanged baselines and candidates.
+validateStageEvidence :: StageEvidence -> Either Text.Text ()
+validateStageEvidence evidence
+  | stageInfrastructure evidence = Left "launch, setup, output, or selection evidence is invalid"
+  | otherwise = Right ()
 
 -- | Reject duplicate/foreign results, fill missing results with 'NotRun', and
 -- recompute totals from the selected ledger. Input ordering cannot inflate scores.

@@ -3,8 +3,11 @@ module Test.Heni.Workspace
   ( SourceSnapshot,
     SnapshotPolicy (..),
     defaultSnapshotPolicy,
+    defaultExcludedNames,
+    defaultExcludedPrefixes,
     Workspace,
     WorkspaceError (..),
+    WorkspaceFinalizationError (..),
     FileEntry (..),
     withSnapshot,
     withWorkspace,
@@ -63,14 +66,19 @@ snapshotFiles (SourceSnapshot _ _ files) = files
 workspaceRoot :: Workspace -> FilePath
 workspaceRoot (Workspace root) = root
 
-defaultNames :: [FilePath]
-defaultNames = [".git", "dist", "dist-newstyle", "cabal-dev", ".direnv", "result", "mutation-results", ".heni", ".DS_Store"]
+-- | Effective default directory/file names, recorded in snapshot identities.
+defaultExcludedNames :: [FilePath]
+defaultExcludedNames = [".git", "dist", "dist-newstyle", "cabal-dev", ".direnv", "result", "mutation-results", ".heni", ".DS_Store"]
+
+-- | Name prefixes excluded at every depth.
+defaultExcludedPrefixes :: [FilePath]
+defaultExcludedPrefixes = ["result-", ".heni-"]
 
 excludedBy :: SnapshotPolicy -> FilePath -> Bool
 excludedBy (SnapshotPolicy ins outs) p = defaultExcluded || explicitExcluded || outsideSelection
   where
     parts = splitDirectories p
-    defaultExcluded = any (\part -> part `elem` defaultNames || "result-" `isPrefixOf` part || ".heni-" `isPrefixOf` part) parts
+    defaultExcluded = any (\part -> part `elem` defaultExcludedNames || any (`isPrefixOf` part) defaultExcludedPrefixes) parts
     prefix a b = a == b || (a ++ "/") `isPrefixOf` b
     explicitExcluded = any (\t -> prefix (targetPath t) p) outs
     outsideSelection = not (null ins) && not (any (\t -> prefix p (targetPath t) || prefix (targetPath t) p) ins)
@@ -91,7 +99,7 @@ withSnapshot root policy action = do
   before <- inventory (excludedBy policy) canonical
   after <- inventory (excludedBy policy) canonical
   unless (before == after) (throwIO SourceChanged)
-  action (SourceSnapshot (inventoryDigest (Text.pack (show policy)) before) policy before)
+  action (SourceSnapshot (inventoryDigest (Text.pack (show policy ++ show defaultExcludedNames ++ show defaultExcludedPrefixes)) before) policy before)
 
 -- | Bracket allocation and removal. Cleanup exceptions remain observable.
 withWorkspace :: SourceSnapshot -> (Workspace -> IO a) -> IO a

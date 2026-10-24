@@ -3,6 +3,7 @@ module Main (main) where
 import Control.Concurrent (threadDelay)
 import Control.Monad (forever, replicateM_)
 import Data.ByteString qualified as BS
+import Data.List (isInfixOf)
 import System.Environment (getArgs, getExecutablePath)
 import System.Exit (ExitCode (..), exitWith)
 import System.IO
@@ -46,6 +47,23 @@ main = do
       BS.hPut stdout "witness"
       exitWith (ExitFailure 1)
     ["invalid-utf8"] -> BS.hPut stdout (BS.pack [255]) >> exitWith (ExitFailure 1)
+    ["counter", path] -> do
+      previous <- readFile path `catchIOError` const (pure "0")
+      let n = (read previous :: Int) + 1
+      length previous `seq` writeFile path (show n)
+      if n > 1 then putStrLn "unchanged control failed" >> exitWith (ExitFailure 1) else pure ()
+    ["check", path, mode] -> do
+      content <- readFile path
+      if "mutant" `isInfixOf` content
+        then case mode of
+          "diagnostic" -> putStrLn "capacity rule violated" >> exitWith (ExitFailure 1)
+          "wrong" -> putStrLn "unrelated failure" >> exitWith (ExitFailure 1)
+          "timeout" -> putStrLn "capacity rule violated" >> threadDelay 30000000
+          _ -> pure ()
+        else pure ()
+    ["check", path, "timeout", marker] -> do
+      content <- readFile path
+      if "mutant" `isInfixOf` content then writeFile marker "ready" >> putStrLn "capacity rule violated" >> threadDelay 30000000 else pure ()
     "echo" : args -> mapM_ print args
     _ -> error "unknown fixture mode"
 
