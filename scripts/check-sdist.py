@@ -5,6 +5,7 @@ import hashlib
 from html.parser import HTMLParser
 import json
 import os
+import re
 from pathlib import Path
 import shutil
 import subprocess
@@ -79,7 +80,10 @@ for name, package in packages.items():
     for path in package.rglob("*"):
         assert not path.is_symlink(), path
         if path.is_file():
-            assert str(checkout).encode() not in path.read_bytes(), f"checkout reference: {path}"
+            # Match an absolute reference, not a relative path whose suffix
+            # happens to share the checkout basename (e.g. test/runner).
+            reference = rb"(?<![A-Za-z0-9_.-])" + re.escape(str(checkout).encode()) + rb"(?:/|[\s\"'])"
+            assert re.search(reference, path.read_bytes()) is None, f"checkout reference: {path}"
     run("check-" + name, ["cabal", "check"], package)
 core = packages["heni"]
 for required in ["schemas/manifest-v1.schema.json", "examples/minimal/src/Capacity.hs", "examples/standalone/target/heni.json", "test/process/Main.hs", "test/migration/Main.hs"]:
@@ -89,7 +93,7 @@ for required in ["schemas/manifest-v1.schema.json", "examples/minimal/src/Capaci
 # inheriting Git, Nix, Mori, OKF, Python, or a consumer mutation runner.
 tools = fresh / "core-tools"
 tools.mkdir()
-for command in "cabal ghc ghc-pkg runghc runhaskell hsc2hs cc gcc clang ld ar ranlib strip libtool make sh pkg-config xcrun xcodebuild install tar gzip uname rm mkdir cp mv cat sed awk perl tr touch chmod sort cut head tail env readlink dirname basename pwd find ln getconf sw_vers xattr dsymutil otool nm lipo codesign expr echo grep date".split():
+for command in "cabal ghc ghc-pkg runghc runhaskell hsc2hs cc gcc clang as ld ar ranlib strip libtool make sh pkg-config xcrun xcodebuild install tar gzip uname rm mkdir cp mv cat sed awk perl tr touch chmod sort cut head tail env readlink dirname basename pwd find ln getconf sw_vers xattr dsymutil otool nm lipo codesign expr echo grep date".split():
     found = shutil.which(command)
     if found:
         (tools / command).symlink_to(found)
