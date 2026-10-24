@@ -1,3 +1,16 @@
+---
+type: Tutorial
+title: "First caught mutation and survivor"
+description: "Run a passing baseline, a caught mutation, and a deliberate survivor."
+docId: DOC-2
+tags: ["getting-started", "cli", "mutation-testing"]
+generated:
+  by: codex/gpt-6
+  at: 2026-10-24T22:57:52Z
+sources:
+  - resource: examples/minimal/heni.json
+---
+
 # First caught mutation and survivor
 
 Use GHC 9.12.4 and Cabal with released dependencies. From this checkout, build
@@ -38,8 +51,8 @@ Expect `survived` and exit 1. A survivor means the valid change was not detected
 it does not establish equivalence. Use fresh output paths when repeating these
 commands. `heni report PATH/report.json` renders evidence without rerunning it.
 
-For Haskell, [Definitions.hs](../examples/library/Definitions.hs) shows short
-case definitions and [Main.hs](../examples/library/Main.hs) calls the same
+For Haskell, [Definitions.hs](../../examples/library/Definitions.hs) shows short
+case definitions and [Main.hs](../../examples/library/Main.hs) calls the same
 `runCampaign` API. Construct options with `defaultRunOptions` and update named
 fields. The library returns `RunResult` and leaves application exits/rendering
 to the caller:
@@ -50,5 +63,5 @@ cabal run heni:exe:heni-library-example -- --output .heni-runs/quickstart-librar
 
 That example returns caught, survivor and unrelated compiler-failure evidence.
 See [CLI usage](cli.md), [migration patterns](migration-guide.md),
-[named adapters and replay](design/adapters.md), and
-[resource ownership](design/scheduling.md) for stronger integrations.
+[named adapters and replay](adapters.md), and
+[resource ownership](scheduling.md) for stronger integrations.

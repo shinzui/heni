@@ -128,6 +128,9 @@ for command in ["git", "nix", "mori", "okf", "python3"]:
 
 project(core / "cabal.project", ["."])
 run("core-independent", ["cabal", "test", "all", "-j1", "--test-show-details=direct"], core, minimal)
+run("haskell-guides-build", ["cabal", "build", "heni:exe:heni-haskell-guides", "-j1"], core, minimal)
+guides_binary = subprocess.check_output(["cabal", "list-bin", "heni:exe:heni-haskell-guides"], cwd=core, env=minimal, text=True).strip()
+run("haskell-guides", [guides_binary, "all", str(fresh / "haskell-guides")], core, minimal)
 plan = json.loads((core / "dist-newstyle/cache/plan.json").read_text())
 nodes = {item["id"]: item for item in plan["install-plan"]}
 reachable = set()

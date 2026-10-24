@@ -70,7 +70,7 @@ Hackage preferred-version endpoints returned 404 for heni, heni-cli, heni-tasty
 and heni-hspec on 2026-10-24. This does not reserve names or establish account
 upload permissions; repeat the check and confirm permissions before upload.
 Registry releases and upstream tags were checked independently from Mori's
-local source corpus; see [compatibility](../design/compatibility.md).
+local source corpus; see [compatibility](../user/compatibility.md).
 
 Only GHC 9.12.4/base 4.21.2.0 is admitted. GHC 9.14/base 4.22, Windows and other
 architectures are outside this release's validated claims. Tasty/Hspec remain
@@ -82,7 +82,7 @@ Later release actions are account authorization, fresh name checks, candidate
 source/docs uploads, rendered Hackage review, candidate installability review,
 publication in dependency order and release tagging. Follow
 [release preparation](../releasing.md). Actual consumer migrations and live
-service acceptance remain a separate [roadmap](../migration-guide.md).
+service acceptance remain a separate [roadmap](../user/migration-guide.md).
 
 The remote workflow is configured, not locally executed as GitHub Actions. Its
 current upstream action releases were verified against release metadata, tags

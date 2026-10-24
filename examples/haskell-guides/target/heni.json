@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "sourcePolicy": {"includes": ["Subject.hs", "Checker.hs", "mode.txt"]},
+  "commands": {
+    "build": {
+      "executable": "ghc",
+      "arguments": ["-v0", "-fforce-recomp", "-package-env", "-", "-outputdir", ".heni-build", "Checker.hs", "-o", "checker"],
+      "timeoutSeconds": 30
+    },
+    "test": {"executable": "./checker"}
+  },
+  "cases": [{
+    "id": "guard-bypass",
+    "description": "The compiled capacity assertion must detect a removed guard.",
+    "edits": [{"kind": "replace", "path": "Subject.hs", "old": "used < limit", "new": "True"}],
+    "build": "build",
+    "test": "test",
+    "expect": {"kind": "diagnostic", "stage": "test", "exitCode": 1, "outputContains": "rejects full capacity: FAIL"}
+  }]
+}

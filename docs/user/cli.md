@@ -1,4 +1,18 @@
-# CLI quickstart
+---
+type: Reference
+title: "CLI and manifest reference"
+description: "Look up manifest semantics, CLI commands, selection, output, and exit codes."
+docId: DOC-3
+tags: ["cli", "manifest", "reference"]
+generated:
+  by: codex/gpt-6
+  at: 2026-10-24T22:57:52Z
+sources:
+  - resource: heni-cli/app/Heni/Cli.hs
+  - resource: src/Test/Heni/Manifest.hs
+---
+
+# CLI and manifest reference
 
 Build with ordinary Cabal and run from this checkout:
 
@@ -55,7 +69,9 @@ for nullable fields such as selector, test and workingDirectory. Effective
 microsecond budgets and output limits appear in reports. Command environment
 values are redacted; sensitiveArguments lists zero-based argv indexes to redact.
 
-The [manifest schema](../schemas/manifest-v1.schema.json) defines wire shape;
+The [manifest schema](../../schemas/manifest-v1.schema.json) defines wire shape;
+the [complete manifest reference](manifest-reference.md) covers every field and
+its Haskell decoding/execution boundary;
 the decoder also checks semantic references and edit/expectation constraints.
 Generic diagnostics, intentional build rejection, unchanged controls, named-test
 protocol adapters, required replay and attempt-bound crash probes are supported.
@@ -64,9 +80,9 @@ Scoped resource commands and baseline reuse use the shared runner. Unsupported f
 fall back to ordinary diagnostic matching.
 
 Named-test adapters, required replay and explicit crash probes are described in
-[adapter contracts](design/adapters.md), with runnable manifests in examples/adapters.
+[adapter contracts](adapters.md), with runnable manifests in examples/adapters.
 
-See [scheduling and resource contracts](design/scheduling.md) for portable resource
+See [scheduling and resource contracts](scheduling.md) for portable resource
 claims, baseline reuse identities, external reset obligations and build-job budgets.
 
 Host tools are checked before execution. An explicit `./path/to/program` is a

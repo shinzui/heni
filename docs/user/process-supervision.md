@@ -1,3 +1,17 @@
+---
+type: Reference
+title: "Process ownership and evidence"
+description: "Look up POSIX command supervision, output retention, timeout, and cleanup guarantees."
+docId: DOC-8
+tags: ["posix", "processes", "timeouts"]
+generated:
+  by: codex/gpt-6
+  at: 2026-10-24T22:57:52Z
+sources:
+  - resource: src/Test/Heni/Process.hs
+  - resource: test/process/Main.hs
+---
+
 # Process ownership and evidence
 
 `runCommand` launches executable plus literal argv in the workspace (or a

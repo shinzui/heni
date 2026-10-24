@@ -91,7 +91,7 @@ The custom hook API returns structured edit errors/evidence and uses checked rea
 ### M3: Isolation across failures
 
 
-Add `test/workspace/` and the `heni-workspace` test target. Start with disposable per-case copies; expose reset/verification operations for later reuse without enabling reuse now. On failure, preserve error evidence outside the disposable tree, discard the candidate, and never copy a backup over the source root. A failed reset invalidates that worker and requires a fresh workspace. Exercise source deletion/creation, permission errors, cancellation while editing, failed cleanup, and a partial multi-edit sequence. Record snapshot policy and supported patch behavior in a local ADR and `docs/design/workspaces.md`.
+Add `test/workspace/` and the `heni-workspace` test target. Start with disposable per-case copies; expose reset/verification operations for later reuse without enabling reuse now. On failure, preserve error evidence outside the disposable tree, discard the candidate, and never copy a backup over the source root. A failed reset invalidates that worker and requires a fresh workspace. Exercise source deletion/creation, permission errors, cancellation while editing, failed cleanup, and a partial multi-edit sequence. Record snapshot policy and supported patch behavior in a local ADR and `docs/user/workspaces.md`.
 
 
 ## Concrete Steps

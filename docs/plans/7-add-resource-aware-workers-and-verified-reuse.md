@@ -98,7 +98,7 @@ missing setup artifact rejection, strict shared corpus and typed/library parity.
 The full regression suite passed with serial Cabal test jobs; focused scheduler
 and CLI checks passed again after the final build-observation and ASCII-name
 checks. Emitted report/protocol schemas and corpus checks passed. ADR 8 and
-`docs/design/scheduling.md` capture the durable contracts.
+`docs/user/scheduling.md` capture the durable contracts.
 
 Two real Cabal repeats per mode on Apple M1 Max measured fresh/one-worker
 81.118–81.132s with three baseline builds, versus reuse/two-workers
@@ -142,7 +142,7 @@ Add opt-in reuse after fresh-worker execution remains a reference mode. Cache ba
 
 Allow incremental build reuse only within one worker after restoring source bytes and verifying that the build tool observes the restored and mutated inputs. Preserve private build directories; never share writable candidate artifacts across workers. Prove rebuild invalidation with edits that reverse each other and same-size content changes, including coarse timestamp behavior. If generic commands offer no reliable invalidation contract, keep fresh builds as the default and expose a documented opt-in provider. A failed reset, unexpected generated file, cleanup error, or suspicious build invalidation retires the worker and its cache; continue only from a fresh snapshot.
 
-Add `test/scheduler/`, self-contained resource fixtures, and `bench/campaign/` workloads. Measure baseline invocation count, cold/warm elapsed time, compilation time, and peak concurrency separately. State the total resource budget as workers multiplied by per-build jobs plus fixture capacity; do not silently multiply unlimited Cabal jobs. Publish observations in `docs/design/scheduling.md` without promising universal speedups. Cross-run persistent verdict caching and coverage selection remain out of scope.
+Add `test/scheduler/`, self-contained resource fixtures, and `bench/campaign/` workloads. Measure baseline invocation count, cold/warm elapsed time, compilation time, and peak concurrency separately. State the total resource budget as workers multiplied by per-build jobs plus fixture capacity; do not silently multiply unlimited Cabal jobs. Publish observations in `docs/user/scheduling.md` without promising universal speedups. Cross-run persistent verdict caching and coverage selection remain out of scope.
 
 
 ## Concrete Steps

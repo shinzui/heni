@@ -1,3 +1,17 @@
+---
+type: Reference
+title: "Compatibility evidence"
+description: "Find recorded compiler, platform, package-bound, and archive compatibility evidence."
+docId: DOC-13
+tags: ["compatibility", "platforms", "dependencies"]
+generated:
+  by: codex/gpt-6
+  at: 2026-10-24T22:57:52Z
+sources:
+  - resource: heni.cabal
+  - resource: docs/validation/release-readiness.md
+---
+
 # Compatibility evidence
 
 Initial local validation uses GHC 9.12.4 and cabal-install 3.16.1.0 on

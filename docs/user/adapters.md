@@ -1,4 +1,21 @@
+---
+type: Reference
+title: "Named assertions, replay and native probes"
+description: "Look up named assertion, replay, and native crash evidence contracts."
+docId: DOC-11
+tags: ["adapters", "named-tests", "replay", "crash"]
+generated:
+  by: codex/gpt-6
+  at: 2026-10-24T22:57:52Z
+sources:
+  - resource: src/Test/Heni/Adapter.hs
+  - resource: test/adapter/Main.hs
+---
+
 # Named assertions, replay and native probes
+
+The [Haskell crash guide](crash-guide.md) provides a runnable native signal example
+with missing-probe, wrong-signal, numeric-exit, and timeout counterexamples.
 
 Install `heni-tasty` or `heni-hspec` in the consumer test executable. Replace
 Tasty's `defaultMain` with `Test.Heni.Tasty.heniMain`, or Hspec's `hspec` with

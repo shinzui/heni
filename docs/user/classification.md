@@ -1,3 +1,17 @@
+---
+type: Explanation
+title: "Evidence classification"
+description: "Understand validity gates, evidence attribution, verdict precedence, and semantic scoring."
+docId: DOC-9
+tags: ["evidence", "classification", "verdicts"]
+generated:
+  by: codex/gpt-6
+  at: 2026-10-24T22:57:52Z
+sources:
+  - resource: src/Test/Heni/Result.hs
+  - resource: test/unit/Main.hs
+---
+
 # Evidence classification
 
 `classifyCase` is the only verdict function. It retains the complete

@@ -1,4 +1,21 @@
+---
+type: Reference
+title: "Resources, workers and conservative reuse"
+description: "Look up worker limits, scoped resources, baseline sharing, and verified build reuse."
+docId: DOC-12
+tags: ["workers", "resources", "reuse"]
+generated:
+  by: codex/gpt-6
+  at: 2026-10-24T22:57:52Z
+sources:
+  - resource: src/Test/Heni/Runner.hs
+  - resource: test/scheduler/Main.hs
+---
+
 # Resources, workers and conservative reuse
+
+The [Haskell build reuse guide](build-reuse-guide.md) implements a content-aware GHC
+wrapper, a matching observation verifier, fresh parity, and stale-receipt refusal.
 
 Fresh execution is the reference mode. `RunOptions.workers` defaults to one and
 accepts 1–256; CLI `--jobs N` overrides `execution.workers`. Each case gets fresh

@@ -83,7 +83,7 @@ selection, dry-run rejection, real QuickCheck reproduction and an invalid
 native replay token. Core unit/workspace/process/runner/CLI regression suites
 passed serially. The emitted evidence and report schema checks and shared
 manifest corpus passed. Source/registry compatibility is recorded in
-`docs/design/compatibility.md`; ADR 7 records the durable contract.
+`docs/user/compatibility.md`; ADR 7 records the durable contract.
 
 The first broad concurrent build/test run exceeded a process fixture's short
 startup budget; the same suite passed with serial Cabal test jobs, now explicit
@@ -130,7 +130,7 @@ Implement `src/Test/Heni/Replay.hs` and `Crash.hs` and corresponding runner hook
 
 A crash case must declare an allowed signal and a probe bound to this case/stage attempt. Ignore a stale marker from the baseline or another case. Require a matching native signal, a fresh probe, and no runner-enforced timeout/cancellation. Test a harmless fixture that writes the probe then raises the declared signal, plus wrong signal, no probe, stale probe, and timeout after probe. The probe is evidence of reachability, not proof of the root cause of an arbitrary native failure; document that limit. Generic crashes remain wrong-failure.
 
-Update schemas and CLI examples with the manifest owner if that plan is complete; otherwise record exact pending lowering contracts in `docs/design/adapters.md` for the integration gate. Add a local ADR for evidence identity, completeness, replay, and probe semantics.
+Update schemas and CLI examples with the manifest owner if that plan is complete; otherwise record exact pending lowering contracts in `docs/user/adapters.md` for the integration gate. Add a local ADR for evidence identity, completeness, replay, and probe semantics.
 
 
 ## Concrete Steps

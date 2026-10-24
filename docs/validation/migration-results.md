@@ -64,7 +64,7 @@ multiple performance changes. There is one accepted whole-campaign timing per
 condition, so whole-campaign variance is not estimated. Unchanged baseline
 builds repeat within the fresh campaigns; their ranges and the sum of build
 stage times are recorded in the JSON. The controlled Cabal workload in
-[the scheduling evidence](../design/scheduling.md) has two repeats per condition
+[the scheduling evidence](../user/scheduling.md) has two repeats per condition
 and reports its variation independently. These data do not predict universal
 speedups.
 
@@ -107,5 +107,5 @@ executable preflight and post-teardown progress ordering. It did not establish
 support for binary mutation, arbitrary generated-output ordering, all property
 frameworks, database-state rollback or unverified incremental build tools.
 Those limits and later consumer migration batches are explicit in
-[the guide](../migration-guide.md). No human usability study, fleet migration,
+[the guide](../user/migration-guide.md). No human usability study, fleet migration,
 Hackage candidate review or publication is claimed.

@@ -22,4 +22,4 @@ incomplete when any run obligation remains. This conservatism prevents ordinary
 command errors from turning a broken mutation campaign green.
 
 The executable truth table and ledger invariants live in test/unit/Main.hs;
-the detailed precedence contract is in docs/design/classification.md.
+the detailed precedence contract is in docs/user/classification.md.

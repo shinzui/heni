@@ -1,3 +1,17 @@
+---
+type: Guide
+title: "Moving a mutation script to Heni"
+description: "Migrate existing mutation scripts while preserving consumer-owned faults and witnesses."
+docId: DOC-5
+tags: ["migration", "scripts", "examples"]
+generated:
+  by: codex/gpt-6
+  at: 2026-10-24T22:57:52Z
+sources:
+  - resource: examples/migrations/README.md
+  - resource: docs/validation/migration-results.md
+---
+
 # Moving a mutation script to Heni
 
 Keep the fault and its assertion in the consumer project. Move snapshotting,
@@ -9,7 +23,7 @@ The local examples are independently authored BSD-3-Clause fixtures. No code
 or license grant was copied from the surveyed consumers, and their repositories
 were not modified or executed. The source inventory was refreshed through Mori
 on 2026-10-24; exact HEAD/file hashes are in
-[the identity record](validation/migration-source-identities.json). The rdkafka
+[the identity record](../validation/migration-source-identities.json). The rdkafka
 runner changed after RES-1: its refreshed file has 453 lines rather than the
 historical 349. Neither count estimates removable orchestration. File-level
 Mori artifact URIs are pending; each relative source path below is paired with
@@ -17,10 +31,10 @@ its canonical owner.
 
 | Local family | Surveyed pattern | Fault and witness |
 | --- | --- | --- |
-| [replacement](../examples/migrations/replacement/heni.json) | [rdkafka-hs](mori://shinzui/rdkafka-hs/packages/rdkafka-hs), `scripts/test-mutations.hs`; [Shibuya](mori://shinzui/shibuya), `scripts/audit/run-websocket-mutation-controls.py` | Replace one capacity guard; require the full-capacity diagnostic. |
-| [patch catalogue](../examples/migrations/patch-catalogue/heni.json) | [Nagare](mori://shinzui/nagare), `cli/nagare-harness/src/Nagare/Harness/Mutation.hs` and `cli/nagarectl/test/mutations/records.json` | Apply a named checked textual patch; stale patches are invalid mutations. |
-| [generated code](../examples/migrations/generated-code/heni.json) | [Keiro DSL](mori://shinzui/keiro/packages/keiro-dsl), `keiro-dsl/test/history-dependent-holes-mutation-test.sh` | Mutate generator input, generate, compile, then require the generated guard assertion to fail. |
-| [diagnostic checker](../examples/migrations/diagnostic-checker/heni.json) | The external-rule checker pattern in [RES-1](research/mutation-testing-survey.md) | Change capacity policy; require exit 1 and the exact capacity-rule diagnostic. |
+| [replacement](../../examples/migrations/replacement/heni.json) | [rdkafka-hs](mori://shinzui/rdkafka-hs/packages/rdkafka-hs), `scripts/test-mutations.hs`; [Shibuya](mori://shinzui/shibuya), `scripts/audit/run-websocket-mutation-controls.py` | Replace one capacity guard; require the full-capacity diagnostic. |
+| [patch catalogue](../../examples/migrations/patch-catalogue/heni.json) | [Nagare](mori://shinzui/nagare), `cli/nagare-harness/src/Nagare/Harness/Mutation.hs` and `cli/nagarectl/test/mutations/records.json` | Apply a named checked textual patch; stale patches are invalid mutations. |
+| [generated code](../../examples/migrations/generated-code/heni.json) | [Keiro DSL](mori://shinzui/keiro/packages/keiro-dsl), `keiro-dsl/test/history-dependent-holes-mutation-test.sh` | Mutate generator input, generate, compile, then require the generated guard assertion to fail. |
+| [diagnostic checker](../../examples/migrations/diagnostic-checker/heni.json) | The external-rule checker pattern in [RES-1](../research/mutation-testing-survey.md) | Change capacity policy; require exit 1 and the exact capacity-rule diagnostic. |
 
 Each checked-in default manifest selects an intended-caught case. The trial
 adds a deliberately surviving label change through both independent Haskell
@@ -81,7 +95,7 @@ packages. The Haskell comparison harness in `test/migration/Legacy.hs` is an
 independently authored finite measurement fixture with deliberately exit-only
 verdicts, not a recommended runner or a copy of production scripts.
 
-The [value record](validation/migration-results.md) separates executable parity,
+The [value record](../validation/migration-results.md) separates executable parity,
 consumer definitions/domain helpers, lifecycle scaffolding, automated authoring
 and diagnosis actions, and elapsed build time. Automated agent observations are
 not a human usability study. Full consumer migrations remain later work: start

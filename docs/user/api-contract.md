@@ -1,7 +1,21 @@
+---
+type: Reference
+title: "Public API and ownership"
+description: "Understand the public Haskell API and the ownership of definitions, hooks, execution, and evidence."
+docId: DOC-6
+tags: ["haskell", "api", "ownership"]
+generated:
+  by: codex/gpt-6
+  at: 2026-10-24T22:57:52Z
+sources:
+  - resource: src/Test/Heni.hs
+  - resource: src/Test/Heni/Runner.hs
+---
+
 # Public API and ownership
 
 The root `heni` library exposes `Test.Heni` and focused Case, Command,
-Expectation and Result modules. It has no test-framework dependency, mandatory
+Expectation and Result modules. It has no direct test-framework dependency, mandatory
 terminal output, process exit, or repository-tool requirement. IDs, relative
 targets, budgets and selected ledgers have hidden constructors. Call
 `validateCase` and `validateCommand` before execution; their `ConfigError`

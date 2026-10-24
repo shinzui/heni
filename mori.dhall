@@ -64,6 +64,22 @@ in  Schema.Project::{
             "Purpose, name, project status, and intended public distribution."
         }
       , Schema.DocRef::{
+        , key = "user-documentation"
+        , kind = Schema.DocKind.Guide
+        , audience = Schema.DocAudience.User
+        , location = Schema.DocLocation.LocalFile "docs/user/overview.md"
+        , description = Some
+            "User tutorials, task guides, explanations, and references with stable DOC handles."
+        }
+      , Schema.DocRef::{
+        , key = "capabilities"
+        , kind = Schema.DocKind.Reference
+        , audience = Schema.DocAudience.User
+        , location = Schema.DocLocation.LocalDir "docs/capabilities"
+        , description = Some
+            "Evidence-backed catalog of currently implemented experimental capabilities."
+        }
+      , Schema.DocRef::{
         , key = "initial-spec"
         , kind = Schema.DocKind.Spec
         , audience = Schema.DocAudience.Module
@@ -82,6 +98,48 @@ in  Schema.Project::{
       ]
     , okfBundles =
       [ Schema.OkfBundle::{
+        , name = "capabilities"
+        , path = "docs/capabilities"
+        , profileBinding = Some
+            ( Schema.ProfileBinding.Published
+                Schema.PinnedImport::{
+                , publisher = "shinzui/okf-profiles"
+                , publisherRef = Some Schema.MoriRef::{
+                  , namespace = "shinzui"
+                  , name = "okf-profiles"
+                  }
+                , export = Some "coordination.capabilities"
+                , version = Some "v0.25.0"
+                , pin = Some
+                    "sha256:ec74cc6f7b8ee1a5af81ee7fc8804f35cf2c9ba4010671d9e881da72eb6719d3"
+                }
+            )
+        , okfVersion = "0.2"
+        , description = Some
+            "Implemented experimental capabilities with stable CAP handles and source, test, example, and guide evidence."
+        }
+      , Schema.OkfBundle::{
+        , name = "user-documentation"
+        , path = "docs/user"
+        , profileBinding = Some
+            ( Schema.ProfileBinding.Published
+                Schema.PinnedImport::{
+                , publisher = "shinzui/okf-profiles"
+                , publisherRef = Some Schema.MoriRef::{
+                  , namespace = "shinzui"
+                  , name = "okf-profiles"
+                  }
+                , export = Some "documentation.userDocumentation"
+                , version = Some "v0.25.0"
+                , pin = Some
+                    "sha256:ec74cc6f7b8ee1a5af81ee7fc8804f35cf2c9ba4010671d9e881da72eb6719d3"
+                }
+            )
+        , okfVersion = "0.2"
+        , description = Some
+            "Reader-oriented navigation, tutorials, task guides, explanations, and references with stable DOC handles."
+        }
+      , Schema.OkfBundle::{
         , name = "research"
         , path = "docs/research"
         , profileBinding = Some

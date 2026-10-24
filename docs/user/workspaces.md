@@ -1,3 +1,17 @@
+---
+type: Reference
+title: "Source capture and checked edits"
+description: "Look up source capture, disposable workspace, checked edit, and patch contracts."
+docId: DOC-7
+tags: ["snapshots", "workspaces", "edits"]
+generated:
+  by: codex/gpt-6
+  at: 2026-10-24T22:57:52Z
+sources:
+  - resource: src/Test/Heni/Workspace.hs
+  - resource: src/Test/Heni/Edit.hs
+---
+
 # Source capture and checked edits
 
 `withSnapshot` reads selected working-tree files twice and rejects an observed

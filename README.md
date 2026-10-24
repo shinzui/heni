@@ -5,11 +5,15 @@ Describe a checked edit, build/test commands and a precise failure witness. Heni
 first proves the unchanged baseline, then runs the mutation in a disposable copy
 and retains a portable report.
 
+Start with the [user documentation](docs/user/overview.md) for tutorials, task
+guides, and references. The [capability catalog](docs/capabilities/index.md)
+records the implemented contracts and their evidence.
+
 Version 0.1.0.0 is unreleased. Local release validation and its limits are recorded
 in [release readiness](https://github.com/shinzui/heni/blob/master/docs/validation/release-readiness.md). Ordinary Cabal and
 released dependencies are sufficient; repository documentation tools and Nix are
 optional. Supported compiler/platform combinations are listed in
-[compatibility](docs/design/compatibility.md).
+[compatibility](docs/user/compatibility.md).
 
 From this checkout:
 
@@ -22,7 +26,7 @@ cabal run heni-cli:exe:heni -- report .heni-runs/first-caught/report.json
 
 Expect `caught` and exit 0. Selecting `--case survivor` with a fresh output path
 produces `survived` and exit 1. Configuration or infrastructure failures exit 2.
-The [quickstart](docs/quickstart.md) begins with the unchanged passing fixture and
+The [quickstart](docs/user/quickstart.md) begins with the unchanged passing fixture and
 shows both cases. Commands use literal argv; no shell mutation runner is needed.
 
 | Package | Purpose |
@@ -59,9 +63,9 @@ mutation generation, distributed execution, persistent verdict caches and
 automatic database rollback are outside this release. Consumer hooks are trusted
 code, not a security sandbox.
 
-Read the [CLI reference](docs/cli.md), [troubleshooting](docs/troubleshooting.md),
-[adapter contracts](docs/design/adapters.md), [resource/reuse guide](docs/design/scheduling.md),
-and [migration guide](docs/migration-guide.md). Versioned [schemas](schemas/) cover
+Read the [CLI reference](docs/user/cli.md), [troubleshooting](docs/user/troubleshooting.md),
+[adapter contracts](docs/user/adapters.md), [resource/reuse guide](docs/user/resource-guide.md),
+and [migration guide](docs/user/migration-guide.md). Versioned [schemas](schemas/) cover
 manifests, reports and test evidence. The [migration evidence](docs/validation/migration-results.md)
 separates measured fixture results from historical research and future consumer work.
 
@@ -71,12 +75,15 @@ For contributors:
 cabal test all -j1 --test-show-details=direct
 sh scripts/test-migrations.sh
 sh scripts/check-sdist.sh
+python3 scripts/check-docs.py
 ```
 
 The archive check additionally needs development-only Python/jsonschema and Git
 for the explicit optional patch gate. Core tests run with a tool path excluding
 Git, Nix, Mori, OKF and Python. [Release preparation](docs/releasing.md) explains
 local archives and the separate later Hackage candidate/publication review.
+The documentation check additionally needs OKF >=0.9.0.0 and Dhall; it enforces
+both profiles, generated indexes, local links, and capability evidence paths.
 
 Heni derives its name from Japanese 変異 (*hen’i*), mutation or variation.
 Licensed BSD-3-Clause; copyright 2026 Nadeem Bitar.

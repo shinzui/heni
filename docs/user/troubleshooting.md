@@ -1,3 +1,17 @@
+---
+type: Guide
+title: "Understanding results"
+description: "Diagnose verdicts, infrastructure errors, interrupted runs, and invalid evidence."
+docId: DOC-4
+tags: ["diagnosis", "verdicts", "recovery"]
+generated:
+  by: codex/gpt-6
+  at: 2026-10-24T22:57:52Z
+sources:
+  - resource: src/Test/Heni/Result.hs
+  - resource: src/Test/Heni/Report.hs
+---
+
 # Understanding results
 
 `caught` requires the declared exit/signal and witness after the validity gates.

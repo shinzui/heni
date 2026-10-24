@@ -1,4 +1,21 @@
+---
+type: Reference
+title: "Campaign evidence and recovery"
+description: "Look up portable report contents, journal recovery, artifact checks, and redaction."
+docId: DOC-10
+tags: ["reports", "json", "recovery"]
+generated:
+  by: codex/gpt-6
+  at: 2026-10-24T22:57:52Z
+sources:
+  - resource: src/Test/Heni/Report.hs
+  - resource: test/runner/Main.hs
+---
+
 # Campaign evidence and recovery
+
+For an executable Haskell reader, application gate, and JSON export recipe, use
+[Consume campaign results and reports in Haskell](report-consumption-guide.md).
 
 `mkCampaign` checks cases, commands, references and Haskell edit registrations.
 `runCampaign` validates the requested nonempty selected ledger, executable

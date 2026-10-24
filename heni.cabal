@@ -21,14 +21,18 @@ extra-doc-files:
   README.md
   docs/*.md
   docs/adr/*.md
-  docs/design/*.md
+  docs/capabilities/*.md
+  docs/capabilities/profile.dhall
   docs/research/*.md
+  docs/user/*.md
+  docs/user/profile.dhall
   docs/validation/migration-measurements.json
   docs/validation/migration-results.md
   docs/validation/migration-source-identities.json
 
 extra-source-files:
   schemas/*.json
+  scripts/check-docs.py
   scripts/check-schemas.py
   scripts/check-sdist.py
   scripts/check-sdist.sh
@@ -39,6 +43,9 @@ data-files:
   examples/adapters/*.json
   examples/adapters/README.md
   examples/adapters/input
+  examples/haskell-guides/target/*.hs
+  examples/haskell-guides/target/heni.json
+  examples/haskell-guides/target/mode.txt
   examples/migrations/README.md
   examples/migrations/diagnostic-checker/LICENSE
   examples/migrations/diagnostic-checker/heni.json
@@ -175,6 +182,28 @@ executable heni-library-example
   main-is: Main.hs
   other-modules: Definitions
   build-depends: heni
+  ghc-options: -threaded
+
+executable heni-haskell-guides
+  import: common
+  hs-source-dirs: examples/haskell-guides
+  main-is: Main.hs
+  other-modules:
+    GuideBuild
+    GuideCases
+    GuideManifest
+    GuideReports
+    GuideSupport
+
+  build-depends:
+    aeson >=2.3.2 && <2.4,
+    bytestring >=0.12.2 && <0.13,
+    directory >=1.3.10.1 && <1.4,
+    filepath >=1.5.5 && <1.6,
+    heni ==0.1.0.0,
+    process >=1.6.26.1 && <1.7,
+    unix >=2.8.8 && <2.9,
+
   ghc-options: -threaded
 
 test-suite heni-runner

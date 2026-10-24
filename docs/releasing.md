@@ -9,7 +9,7 @@ ownership grant; verify the intended Hackage account's upload permissions.
 The archive gate requires released cabal-install 3.16.1.0 or newer for its
 selective Haddock options. Core build/runtime tests also passed with 3.14.1.1,
 but that version hides the requested implementation pages. Use the tested
-GHC/Cabal combinations in [compatibility](design/compatibility.md).
+GHC/Cabal combinations in [compatibility](user/compatibility.md).
 The four packages share version 0.1.0.0; CLI/reporters require that exact core
 version. Public API versioning follows the [PVP](https://pvp.haskell.org/): breaking
 API/type/instance changes increase A.B, additive APIs increase C, and fixes may
@@ -66,6 +66,6 @@ publication in dependency order (core, then CLI/reporters) after candidate revie
 verify normal Hackage installation and rendered docs afterward. Candidate review,
 account authorization, publication and release tags remain explicit handoff items.
 
-Actual consumer migrations are a separate roadmap in [the migration guide](migration-guide.md).
+Actual consumer migrations are a separate roadmap in [the migration guide](user/migration-guide.md).
 Each owning project must preserve its fault, witness and live resource/reset
 contract; local representative fixtures do not establish those migrations.

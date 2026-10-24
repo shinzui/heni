@@ -97,7 +97,7 @@ Own `schemas/report-v1.schema.json`, report codecs, run progress events, and jou
 
 Provide library `readReport` and `recoverReport` operations that can reconstruct a clearly incomplete report from a journal, tolerate only a final truncated journal record, reject interior corruption, and never resume commands implicitly. Validate evidence path containment before opening report references. Move a report directory and demonstrate it still renders with its artifacts. Report loss or disk-full failure returns infrastructure error in memory and best-effort stderr only at the future CLI boundary; do not guarantee disk writes when the filesystem refuses them. Preserve the original and cleanup/report errors together.
 
-Expose a progress callback whose exceptions cause controlled termination and an untrustworthy run, not silent success. Keep its invocation outside critical ownership transitions. Document that arbitrary uncooperative Haskell hooks are trusted code and cannot be made safely preemptible by a type signature alone. Record the evidence lifecycle and recovery limitations in `docs/design/reports.md` and a local ADR.
+Expose a progress callback whose exceptions cause controlled termination and an untrustworthy run, not silent success. Keep its invocation outside critical ownership transitions. Document that arbitrary uncooperative Haskell hooks are trusted code and cannot be made safely preemptible by a type signature alone. Record the evidence lifecycle and recovery limitations in `docs/user/reports.md` and a local ADR.
 
 
 ## Concrete Steps
