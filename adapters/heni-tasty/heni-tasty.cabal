@@ -13,6 +13,9 @@ tested-with: ghc ==9.12.4
 homepage: https://github.com/shinzui/heni
 bug-reports: https://github.com/shinzui/heni/issues
 description: Optional framework reporter for trustworthy named mutation evidence.
+extra-doc-files:
+  CHANGELOG.md
+  README.md
 
 common common
   default-language: GHC2024
@@ -40,7 +43,7 @@ executable heni-tasty-fixture
   hs-source-dirs: test/fixture
   main-is: Main.hs
   build-depends:
-    heni-tasty,
+    heni-tasty ==0.1.0.0,
     stm >=2.5.3.1 && <2.6,
     tasty >=1.5.5 && <1.6,
     tasty-hunit >=0.10.2 && <0.11,
@@ -53,11 +56,11 @@ test-suite heni-tasty-test
   hs-source-dirs: test
   main-is: Main.hs
   build-depends:
-    directory,
-    filepath,
-    heni-tasty,
-    process,
-    unix,
+    directory >=1.3.10.1 && <1.4,
+    filepath >=1.5.5 && <1.6,
+    heni-tasty ==0.1.0.0,
+    process >=1.6.26.1 && <1.7,
+    unix >=2.8.8 && <2.9,
 
   build-tool-depends:
     heni-cli:heni,

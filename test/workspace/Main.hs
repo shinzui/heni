@@ -2,13 +2,14 @@ module Main (main) where
 
 import Control.Concurrent (threadDelay)
 import Control.Exception
-import Control.Monad (forM_, unless)
+import Control.Monad (forM_, unless, when)
 import Data.ByteString qualified as BS
 import Data.IORef
 import Data.Map.Strict qualified as Map
 import Data.Set qualified as Set
 import Data.Text qualified as Text
 import System.Directory qualified as Dir
+import System.Environment (lookupEnv)
 import System.Exit (ExitCode (..))
 import System.FilePath ((</>))
 import System.Posix.Files qualified as Posix
@@ -111,12 +112,18 @@ main = withTree $ \source -> do
       reset <- try (resetWorkspace snapshot w) :: IO (Either IOException ())
       assert' "reset failure invalidates workspace" (case reset of Left _ -> True; _ -> False)
     let patch = "diff --git a/dirty.txt b/dirty.txt\n--- a/dirty.txt\n+++ b/dirty.txt\n@@ -1 +1 @@\n-anchor\n+patched\n"
-    patched <- run [Patch patch]
-    assert' "textual patch" (case patched of Right ("patched\n", _) -> True; _ -> False)
-    stalePatch <- run [Patch (patch <> "diff --git a/missing b/missing\n--- a/missing\n+++ b/missing\n@@ -1 +1 @@\n-old\n+new\n")]
-    assert' "partial patch discarded" (case stalePatch of Left InvalidEdit {} -> True; _ -> False)
-    again <- run [edit]
-    assert' "patch failure cannot contaminate next case" (case again of Right ("changed\n", _) -> True; _ -> False)
+    available <- Dir.findExecutable "git"
+    required <- lookupEnv "HENI_REQUIRE_GIT"
+    when (required == Just "1" && available == Nothing) (error "patch validation requires Git")
+    case available of
+      Nothing -> putStrLn "Git unavailable: optional positive patch checks skipped"
+      Just _ -> do
+        patched <- run [Patch patch]
+        assert' "textual patch" (case patched of Right ("patched\n", _) -> True; _ -> False)
+        stalePatch <- run [Patch (patch <> "diff --git a/missing b/missing\n--- a/missing\n+++ b/missing\n@@ -1 +1 @@\n-old\n+new\n")]
+        assert' "partial patch discarded" (case stalePatch of Left InvalidEdit {} -> True; _ -> False)
+        again <- run [edit]
+        assert' "patch failure cannot contaminate next case" (case again of Right ("changed\n", _) -> True; _ -> False)
     unsafePatch <- run [Patch (Text.replace "--- a/dirty.txt" "--- a/../escape" patch)]
     assert' "all patch header paths checked" (case unsafePatch of Left InvalidEdit {} -> True; _ -> False)
     missingGit <- withEditedWorkspace (\_ _ -> throwIO (userError "git is unavailable")) noHooks snapshot (caseWith [Patch patch]) (\_ _ -> pure ())

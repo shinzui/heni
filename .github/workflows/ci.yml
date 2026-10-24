@@ -1,17 +1,15 @@
 name: Cabal
 on: [push, pull_request]
 jobs:
-  test:
+  release-validation:
+    timeout-minutes: 60
     strategy:
+      fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest]
         ghc: ['9.12.4']
+        bounds: [lower, newest]
     runs-on: ${{ matrix.os }}
-    env:
-      HENI_MIGRATION_RESULTS: ${{ github.workspace }}/.heni-runs/migration-results.json
-      HENI_SCHEMA_RESOURCE: ${{ github.workspace }}/.heni-runs/resource-schema-fixture.json
-      HENI_SCHEMA_EVIDENCE: .heni-runs/evidence-schema-fixture.jsonl
-      HENI_SCHEMA_REPORT: .heni-runs/report-schema-fixture.json
     steps:
       - uses: actions/checkout@v4
       - uses: haskell-actions/setup@v2
@@ -19,9 +17,20 @@ jobs:
           ghc-version: ${{ matrix.ghc }}
           cabal-version: '3.16.1.0'
       - run: cabal update
-      - run: cabal build all --enable-tests
-      - run: cabal test all -j1 --test-show-details=direct
-      - run: python3 -m pip install jsonschema==4.26.0
-      - run: python3 scripts/check-schemas.py .heni-runs/report-schema-fixture.json .heni-runs/resource-schema-fixture.json
-      - run: sh scripts/test-migrations.sh
-      - run: cabal haddock all
+      - name: Schema validation environment
+        run: |
+          python3 -m venv "$RUNNER_TEMP/heni-schema"
+          "$RUNNER_TEMP/heni-schema/bin/pip" install jsonschema==4.26.0
+      - name: Core, optional reporters, patches and standalone archives
+        env:
+          HENI_CI_WERROR: '1'
+          TMPDIR: ${{ runner.temp }}
+          HENI_SCHEMA_PYTHON: ${{ runner.temp }}/heni-schema/bin/python
+        run: sh scripts/check-sdist.sh --bounds '${{ matrix.bounds }}' --output dist-release
+      - name: Retain archive checks and solver evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-${{ matrix.os }}-${{ matrix.ghc }}-${{ matrix.bounds }}
+          path: |
+            dist-release/

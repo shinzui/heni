@@ -63,7 +63,7 @@ Apply [core standards](mori://shinzui/haskell-jitsurei/docs/core-standards), [re
 | 6 | Named-test adapters, replay, crash evidence | [docs/plans/6-add-named-test-adapters-replay-and-crash-evidence.md](../plans/6-add-named-test-adapters-replay-and-crash-evidence.md) | EP-4 | EP-5 | Complete |
 | 7 | Resource-aware workers and verified reuse | [docs/plans/7-add-resource-aware-workers-and-verified-reuse.md](../plans/7-add-resource-aware-workers-and-verified-reuse.md) | EP-4 | EP-5 | Complete |
 | 8 | Representative migration and usability proof | [docs/plans/8-prove-representative-script-migration-and-usability.md](../plans/8-prove-representative-script-migration-and-usability.md) | EP-5, EP-6, EP-7 | None | Complete |
-| 9 | Portable packages and Hackage preparation | [docs/plans/9-validate-portable-packages-and-prepare-the-hackage-release.md](../plans/9-validate-portable-packages-and-prepare-the-hackage-release.md) | EP-8 | None | Not Started |
+| 9 | Portable packages and Hackage preparation | [docs/plans/9-validate-portable-packages-and-prepare-the-hackage-release.md](../plans/9-validate-portable-packages-and-prepare-the-hackage-release.md) | EP-8 | None | In Progress |
 
 All hard dependencies name whole children and require Complete status. Status values are Not Started, In Progress, Complete, and Cancelled. Soft dependencies share useful context without blocking work.
 
@@ -120,7 +120,7 @@ EP-1 through EP-8 are Complete. The four migration families and richer
 named/replay/crash/resource trials passed through typed and CLI definitions,
 with measured orchestration/action/runtime evidence and retained artifacts.
 The final default suite passed every core, CLI, Tasty and Hspec target on
-macOS/GHC 9.12.4, including the process-group race regression. EP-9 remains the
+macOS/GHC 9.12.4, including the process-group race regression. EP-9 is In Progress with the
 extracted-source, metadata and compatibility release-readiness gate. Historical
 survey, refreshed source identities and executable migration evidence are
 recorded separately; no fleet migration or publication occurred.

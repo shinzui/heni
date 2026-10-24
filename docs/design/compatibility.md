@@ -77,3 +77,36 @@ cycle was observed on 3.16.1.0, not asserted to have been reproduced on 3.18.2.0
 Mori supplied solver source at mori://haskell/cabal/packages/cabal-install-solver;
 the optional integration boundary also preserves standalone core tests regardless
 of the solver version.
+
+The first release admits GHC 9.12.4/base 4.21.2.0 only. This is both the minimum
+and newest compiler in the supported range; earlier 9.12 patch releases have
+older base versions. The official GHC site also lists 9.14.1, whose base 4.22
+is outside the admitted range. GHC 9.14 and Windows are not advertised or
+validated by these bounds. Widening compiler support requires a fresh test matrix.
+
+Release validation uses explicit direct dependency sets: the lower set listed
+above and a newest-admitted set changing containers to 0.8.1, directory to
+1.3.11.0 and process to 1.6.30.0. Other direct lower bounds already equal the
+registry's latest admitted releases as checked again on 2026-10-24. Solver
+plans retain exact transitive versions and Hackage Cabal/source hashes. Aeson
+itself depends on QuickCheck; core has no reachable Tasty, Hspec, CLI or Heni
+reporter dependency. Public core modules expose no framework test API.
+
+The archive gate validates actual extracted packages and an independent consumer;
+core tests exclude Git/Nix/Mori/OKF/Python from executable search. Optional Git
+patches and framework reporters run in separate explicit gates. CI configures
+Linux/macOS and lower/newest sets with GHC 9.12.4 and owned-package `-Werror`;
+that option is not imposed in published Cabal metadata. Remote CI execution is
+not claimed by writing the workflow. Exact locally passed combinations and
+archive identities are in the repository's release-readiness record.
+
+| Locally executed platform | Compiler | Cabal | Evidence |
+| --- | --- | --- | --- |
+| aarch64 macOS / Apple M1 Max | 9.12.4 | 3.16.1.0 | All core, CLI, Tasty and Hspec suites; representative migration trials. |
+| aarch64 Linux / Debian 12 container, kernel 6.8.0 | 9.12.4 | 3.14.1.1 | All core, CLI, Tasty and Hspec suites from extracted initial archives. |
+
+The Linux runtime used the official `haskell:9.12.4-slim-bookworm` arm64 image
+at digest `sha256:a017c85d1557f6098cfb6356e13a4b9ef16dfd89010cd1708ac4e01251c95402`,
+with container init reaping descendants. This is native Linux in a task-owned VM,
+not remote GitHub Actions evidence. Final immutable archive/bounds results are
+tracked separately in the readiness record; the table above records suite runs.

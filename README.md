@@ -1,97 +1,82 @@
 # Heni
 
-**Heni is a Haskell library and CLI for running deliberate mutations and verifying that tests catch the intended faults.**
+Heni runs deliberate mutations and verifies that the intended tests catch them.
+Describe a checked edit, build/test commands and a precise failure witness. Heni
+first proves the unchanged baseline, then runs the mutation in a disposable copy
+and retains a portable report.
 
-A passing test tells you that the current implementation satisfies an assertion.
-Heni asks the next question: would that assertion notice a particular bug?
-Remove a guard, reverse an ordering rule, drop a cleanup action, or corrupt a
-fixture, then require the expected test or diagnostic to detect the change.
+Version 0.1.0.0 is unreleased. Local release validation and its limits are recorded
+in [release readiness](https://github.com/shinzui/heni/blob/master/docs/validation/release-readiness.md). Ordinary Cabal and
+released dependencies are sufficient; repository documentation tools and Nix are
+optional. Supported compiler/platform combinations are listed in
+[compatibility](docs/design/compatibility.md).
 
-Heni is being designed for Haskell library authors, application teams, and tool
-maintainers who want repeatable mutation tests with clear evidence.
-
-## The name
-
-**Heni** comes from the Japanese **変異** (*hen’i*), meaning “mutation” or
-“variation.” The package name drops the apostrophe for a short Haskell package
-name and command: `heni`.
-
-## Project status
-
-Heni is under active development. The library and CLI run checked mutations in fresh
-workspaces with bounded subprocesses, precise classification and portable
-reports. Framework adapters and release gates are tracked by
-[the bootstrap plan](docs/masterplans/1-bootstrap-heni-for-trustworthy-mutation-testing-and-hackage-release.md).
-No Hackage release is published by this work.
-
-Run the standalone Cabal fixture through the library from this checkout:
+From this checkout:
 
 ```sh
-cabal test all --test-show-details=direct
-cabal run heni:exe:heni-library-example -- --output .heni-runs/example
+cabal build all -j1
+cabal run heni-cli:exe:heni -- check examples/minimal/heni.json
+cabal run heni-cli:exe:heni -- run examples/minimal/heni.json --case guard-bypass --output .heni-runs/first-caught
+cabal run heni-cli:exe:heni -- report .heni-runs/first-caught/report.json
 ```
 
-Use a new output directory for each run. The example deliberately demonstrates
-one caught mutation, one survivor and one unrelated compile failure. Source
-bytes remain unchanged. See [the API contract](docs/design/api-contract.md),
-[classification](docs/design/classification.md) and
-[report recovery](docs/design/reports.md) for the current guarantees.
-
-The publication goal is two Hackage packages:
+Expect `caught` and exit 0. Selecting `--case survivor` with a fresh output path
+produces `survived` and exit 1. Configuration or infrastructure failures exit 2.
+The [quickstart](docs/quickstart.md) begins with the unchanged passing fixture and
+shows both cases. Commands use literal argv; no shell mutation runner is needed.
 
 | Package | Purpose |
 | --- | --- |
-| `heni` | An embeddable mutation-testing library under `Test.Heni`. |
-| `heni-cli` | The `heni` executable, using the same execution and verdict logic. |
+| `heni` | Framework-neutral `Test.Heni` library, strict manifests, runner and reports. |
+| `heni-cli` | The `heni` executable using the same library classifier. |
+| `heni-tasty` | Optional complete named-test evidence for Tasty. |
+| `heni-hspec` | Optional Hspec evidence and native QuickCheck replay. |
 
-These are intended distribution names, subject to availability before release.
-Installation instructions and runnable examples will accompany the first release.
+A Haskell consumer constructs `CaseDefinition`, calls `mkCampaign`, then
+`runCampaign (defaultRunOptions source output) campaign`. The library returns
+`RunResult`; the caller owns application rendering/exits. See the
+[short library example](examples/library/Definitions.hs) and the
+[independent consumer](examples/standalone/Main.hs). Use generic exact diagnostics
+when test counts are unknown, or install a reporter for selected/executed IDs and
+named assertions. Tasty/Hspec reporters are optional. Released Aeson brings a transitive
+QuickCheck dependency; the core exposes no framework test types.
 
-## What Heni will provide
+Heni supports checked UTF-8 replacement, create/delete, optional Git textual
+patches and trusted Haskell transformations. Baselines, controls, intentional
+compiler rejection, replay and fresh crash probes have separate evidence
+contracts. Timeouts, unrelated errors, stale edits and missing test evidence
+cannot count as successful semantic detection. Source snapshots include selected
+dirty and untracked regular files; the original checkout remains unchanged.
 
-- **Small, deliberate mutations.** Describe a known fault with a patch, checked
-  text replacement, or Haskell-defined transformation.
-- **Trustworthy verdicts.** Require the intended test failure or diagnostic;
-  distinguish timeouts, build errors, and infrastructure failures.
-- **Isolated runs.** Apply changes in disposable workspaces while preserving the
-  source checkout and resetting each case to its baseline.
-- **Existing test suites.** Run Cabal components and other commands, with optional
-  adapters for test selection and failure attribution.
-- **Reproducible evidence.** Retain source identity, commands, logs, outcomes, and
-  property-test replay information in human-readable and versioned JSON reports.
-- **A practical CI interface.** Check mutation definitions quickly, run selected
-  cases, and fail clearly when a required mutation survives or cannot be verified.
+Scoped resources and bounded workers support consumer-owned fixtures. Baseline
+sharing is opt-in and requires complete compatible identities. Incremental build
+reuse requires a trusted content-observation verifier; there is no generic
+portable switch that makes every build cache safe.
 
-The first release will focus on curated mutations and a dependable execution
-core. Broader automatic mutation generation is a later extension point. The
-library should be useful from ordinary Cabal projects, with optional Nix and
-repository-tool integrations.
+The POSIX supervisor bounds commands, output capture and group cleanup. Detached
+descendants and runner SIGKILL need stronger consumer containment. Windows, AST
+mutation generation, distributed execution, persistent verdict caches and
+automatic database rollback are outside this release. Consumer hooks are trusted
+code, not a security sandbox.
 
-## Design and evidence
+Read the [CLI reference](docs/cli.md), [troubleshooting](docs/troubleshooting.md),
+[adapter contracts](docs/design/adapters.md), [resource/reuse guide](docs/design/scheduling.md),
+and [migration guide](docs/migration-guide.md). Versioned [schemas](schemas/) cover
+manifests, reports and test evidence. The [migration evidence](docs/validation/migration-results.md)
+separates measured fixture results from historical research and future consumer work.
 
-- [Initial specification](docs/initial-spec.md): proposed API boundaries, CLI,
-  execution contract, outcome semantics, and Hackage release criteria.
-- [Research](docs/research/index.md): the source survey and extraction assessment
-  that motivate the design.
-
-The research includes existing production-test patterns, the duplication in their
-runners, and failure modes Heni should prevent. The initial specification turns
-those findings into a public library and CLI contract.
-
-## Working on the design
-
-Issues and contributions should include a concrete mutation, the test or
-diagnostic expected to detect it, and the evidence a runner needs to distinguish
-that detection from an unrelated failure. API proposals should work for an
-ordinary Haskell project as well as for the repositories in the research survey.
-
-The research bundle follows the published OKF research-document profile. To check
-the repository metadata and research:
+For contributors:
 
 ```sh
-mori validate
-okf validate docs/research --strict --profile docs/research/profile.dhall --profile-enforce --log-enforce
+cabal test all -j1 --test-show-details=direct
+sh scripts/test-migrations.sh
+sh scripts/check-sdist.sh
 ```
 
-OKF and Mori are documentation-maintenance tools. The public Heni library and
-CLI will have no runtime requirement on either tool.
+The archive check additionally needs development-only Python/jsonschema and Git
+for the explicit optional patch gate. Core tests run with a tool path excluding
+Git, Nix, Mori, OKF and Python. [Release preparation](docs/releasing.md) explains
+local archives and the separate later Hackage candidate/publication review.
+
+Heni derives its name from Japanese 変異 (*hen’i*), mutation or variation.
+Licensed BSD-3-Clause; copyright 2026 Nadeem Bitar.

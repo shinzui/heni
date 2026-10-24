@@ -15,7 +15,11 @@ maintainer: nadeem@gmail.com
 copyright: 2026 Nadeem Bitar
 category: Testing
 build-type: Simple
-extra-doc-files: CHANGELOG.md
+tested-with: ghc ==9.12.4
+extra-doc-files:
+  CHANGELOG.md
+  README.md
+
 data-files: test/corpus/*.json
 
 source-repository head

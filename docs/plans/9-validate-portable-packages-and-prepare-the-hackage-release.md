@@ -11,6 +11,12 @@ provenance:
     model: "gpt-6-astra"
     harness: "codex-cli"
     at: 2026-10-24T14:33:09Z
+  revisions:
+    - model: "gpt-6.1-sol"
+      harness: "codex-cli"
+      at: 2026-10-24T18:36:40Z
+      mode: "implement"
+      note: "Validate metadata, independent source archives and local release readiness"
 ---
 
 # Validate portable packages and prepare the Hackage release
@@ -28,7 +34,7 @@ A user outside this repository can build and run Heni from its source archives u
 ## Progress
 
 
-- [ ] M1: Supported OS/compiler/dependency combinations and package metadata are verified.
+- [x] (2026-10-24) M1: Supported OS/compiler/dependency combinations and package metadata are verified.
 - [ ] M2: Extracted source archives build, test, document, and run standalone consumer examples without repository-only infrastructure.
 - [ ] M3: Release-readiness evidence, documentation, and local candidate artifacts are complete for a later publication action.
 
@@ -36,13 +42,44 @@ A user outside this repository can build and run Heni from its source archives u
 ## Surprises & Discoveries
 
 
-None yet.
+2026-10-24: Hackage preferred-version lookups returned 404 for all four names;
+this establishes neither reservation nor upload permissions. Registry releases
+and upstream tags were checked independently of the local dependency corpus.
+The supported minimum and newest admitted compiler are both GHC 9.12.4 because
+base is deliberately bounded to the tested 4.21.2 series; GHC 9.14/base 4.22 is
+outside this first release's admitted matrix.
 
+2026-10-24: Core workspace/runner tests previously assumed Git. Positive patch
+checks now explicitly require its capability; malformed-path/missing-capability
+checks remain universal. Archive validation excludes Git/Nix/Mori/OKF/Python
+from core test PATH and then separately requires successful Git patch tests.
+A task-owned Colima profile and official arm64 Debian/GHC image supply Linux
+without altering running consumer profiles.
+
+
+2026-10-24: The first independent core tests passed, but a naive whole-plan
+package-name assertion failed because Cabal includes unreachable installed
+nodes. Archive validation now traverses actual component dependencies. Released
+Aeson depends on QuickCheck for its own library; core has no Tasty/Hspec/reporter
+closure or framework test API. This transitive JSON dependency is documented
+rather than described as absent.
+
+2026-10-24: Full core/CLI/Tasty/Hspec suites passed on native arm64 Linux
+(Debian 12 official image, GHC 9.12.4, Cabal 3.14.1.1). macOS suites passed
+on GHC 9.12.4/Cabal 3.16.1.0. The initial core archive also passed without Git,
+Nix, Mori, OKF or Python in its executable search path. Final immutable archive
+validation remains in progress; the published matrix distinguishes these runs.
 
 ## Decision Log
 
 
-No implementation decisions yet; the approach below is the initial proposed contract.
+2026-10-24: Use the maintainer-selected BSD-3-Clause license and verified metadata
+from the maintainer's other packages (Nadeem Bitar, nadeem@gmail.com).
+
+2026-10-24: Constrain direct dependencies to explicit released lower/newest sets
+for archive validation and retain solver plans. Advertise only passed compiler/
+platform combinations. Matrix configuration is not remote execution evidence.
+Keep candidate uploads/account authorization/publication as later actions.
 
 
 ## Outcomes & Retrospective

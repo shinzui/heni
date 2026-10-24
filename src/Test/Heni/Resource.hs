@@ -63,6 +63,7 @@ data ResourceEvent = ResourceEvent !Text !Text !ResourcePhase !ResourceBinding |
 -- | Lifecycle failures differ from test assertions.
 data ResourcePhase = AcquireResource | ResetResource | ReleaseResource deriving stock (Eq, Show)
 
+-- | Resource name, failed lifecycle phase and original exception.
 data ResourceError = ResourceError !Text !ResourcePhase !SomeException
   deriving stock (Show)
   deriving anyclass (Exception)
@@ -72,9 +73,13 @@ data ResourceLease = ResourceLease !(IO ResourceBinding) !(IO ResourceBinding)
 
 -- | A scoped CPS provider keeps arbitrary consumer values out of JSON/core types.
 data ResourceProvider = ResourceProvider
-  { resourceName :: !Text,
+  { -- | Uppercase identity used by claims and environment namespaces.
+    resourceName :: !Text,
+    -- | Ownership lifetime; each instance is acquired and released once.
     resourceScope :: !ResourceScope,
+    -- | Maximum concurrent claims, also bounding worker-scoped acquisition.
     resourceCapacity :: !Int,
+    -- | Portable lifecycle commands for preflight; arbitrary providers use [].
     resourceCommands :: ![Command],
     provide :: forall a. ResourceContext -> (ResourceLease -> IO a) -> IO a
   }

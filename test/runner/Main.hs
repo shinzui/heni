@@ -2,7 +2,7 @@ module Main (main) where
 
 import Control.Concurrent
 import Control.Exception
-import Control.Monad (forM_, unless)
+import Control.Monad (forM_, unless, when)
 import Data.ByteString qualified as BS
 import Data.IORef
 import Data.Map.Strict qualified as Map
@@ -70,8 +70,14 @@ suite = bracket (Dir.getTemporaryDirectory >>= \tmp -> mkdtemp (tmp </> "heni-ru
   assert' "invalid edit distinct" (case stale of RunResult {results = [CaseResult {verdict = InvalidMutation}]} -> True; _ -> False)
   let patch = "diff --git a/input b/input\n--- a/input\n+++ b/input\n@@ -1 +1 @@\n-anchor\n+mutant\n"
       patchedDefinition = case definition of CaseDefinition i d ts _ b t s e mode -> CaseDefinition i d ts [Patch patch] b t s e mode
-  patched <- runCampaign (defaultRunOptions source (root </> "patch")) (campaign "diagnostic" patchedDefinition noHooks)
-  assert' "production Git path uses supervised patch runner" (case patched of RunResult {results = [CaseResult {verdict = Caught}]} -> True; _ -> False)
+  available <- Dir.findExecutable "git"
+  required <- lookupEnv "HENI_REQUIRE_GIT"
+  when (required == Just "1" && available == Nothing) (error "patch validation requires Git")
+  case available of
+    Nothing -> putStrLn "Git unavailable: optional production patch check skipped"
+    Just _ -> do
+      patched <- runCampaign (defaultRunOptions source (root </> "patch")) (campaign "diagnostic" patchedDefinition noHooks)
+      assert' "production Git path uses supervised patch runner" (case patched of RunResult {results = [CaseResult {verdict = Caught}]} -> True; _ -> False)
   let control = case definition of CaseDefinition i d ts _ b t s _ mode -> CaseDefinition i d ts [] b t s Control mode
       failedControl = checked (mkCampaign (Map.fromList [(buildId, cmd ["exit", "0"]), (testId, cmd ["counter", root </> "control-counter"])]) [(control, noHooks)])
   controlResult <- runCampaign (defaultRunOptions source (root </> "control")) failedControl

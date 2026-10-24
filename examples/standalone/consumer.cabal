@@ -1,0 +1,18 @@
+cabal-version: 3.4
+name: heni-standalone-consumer
+version: 0.1.0.0
+build-type: Simple
+license: BSD-3-Clause
+
+executable consumer
+  main-is: Main.hs
+  default-language: GHC2024
+  default-extensions:
+    DuplicateRecordFields
+    OverloadedStrings
+
+  ghc-options: -threaded
+  build-depends:
+    base >=4.21.2 && <4.22,
+    containers >=0.7 && <0.9,
+    heni ==0.1.0.0,

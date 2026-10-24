@@ -1,0 +1,79 @@
+{
+  "schemaVersion": 1,
+  "commands": {
+    "build": {
+      "executable": "ghc",
+      "arguments": [
+        "-v0",
+        "Checker.hs",
+        "-o",
+        "checker"
+      ]
+    },
+    "test": {
+      "executable": "./checker"
+    }
+  },
+  "cases": [
+    {
+      "id": "caught",
+      "description": "Remove the intended capacity guard",
+      "edits": [
+        {
+          "kind": "replace",
+          "path": "input",
+          "old": "anchor",
+          "new": "mutant"
+        }
+      ],
+      "build": "build",
+      "test": "test",
+      "expect": {
+        "kind": "diagnostic",
+        "stage": "test",
+        "exitCode": 1,
+        "outputContains": "capacity rule violated"
+      }
+    },
+    {
+      "id": "survivor",
+      "description": "Remove the intended capacity guard",
+      "edits": [
+        {
+          "kind": "replace",
+          "path": "input",
+          "old": "anchor",
+          "new": "harmless"
+        }
+      ],
+      "build": "build",
+      "test": "test",
+      "expect": {
+        "kind": "diagnostic",
+        "stage": "test",
+        "exitCode": 1,
+        "outputContains": "capacity rule violated"
+      }
+    },
+    {
+      "id": "wrong",
+      "description": "Remove the intended capacity guard",
+      "edits": [
+        {
+          "kind": "replace",
+          "path": "input",
+          "old": "anchor",
+          "new": "unrelated"
+        }
+      ],
+      "build": "build",
+      "test": "test",
+      "expect": {
+        "kind": "diagnostic",
+        "stage": "test",
+        "exitCode": 1,
+        "outputContains": "capacity rule violated"
+      }
+    }
+  ]
+}

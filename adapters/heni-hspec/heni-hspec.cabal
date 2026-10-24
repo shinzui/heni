@@ -13,6 +13,9 @@ tested-with: ghc ==9.12.4
 homepage: https://github.com/shinzui/heni
 bug-reports: https://github.com/shinzui/heni/issues
 description: Optional framework reporter for trustworthy named mutation evidence.
+extra-doc-files:
+  CHANGELOG.md
+  README.md
 
 common common
   default-language: GHC2024
@@ -43,7 +46,7 @@ executable heni-hspec-fixture
   main-is: Main.hs
   build-depends:
     QuickCheck >=2.19 && <2.20,
-    heni-hspec,
+    heni-hspec ==0.1.0.0,
     hspec >=2.11.18 && <2.12,
     hspec-api >=2.11.18 && <2.12,
     hspec-core >=2.11.18 && <2.12,
@@ -56,11 +59,11 @@ test-suite heni-hspec-test
   hs-source-dirs: test
   main-is: Main.hs
   build-depends:
-    directory,
-    filepath,
-    heni-hspec,
-    process,
-    unix,
+    directory >=1.3.10.1 && <1.4,
+    filepath >=1.5.5 && <1.6,
+    heni-hspec ==0.1.0.0,
+    process >=1.6.26.1 && <1.7,
+    unix >=2.8.8 && <2.9,
 
   build-tool-depends:
     heni-cli:heni,
