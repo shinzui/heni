@@ -24,3 +24,11 @@ programs are workspace-local build products: validate their contained relative
 syntax at preflight and resolve them in the stage's checked cwd after build.
 Reject runtime symlink escapes. Applicability checking can defer their existence
 without running a build; this must not be presented as proof they already exist.
+
+Group signalling errors are provisional until bounded cleanup ends. macOS can
+return EPERM while an exiting group's members are being reaped, then ESRCH.
+Only a subsequent definite ESRCH clears those errors; persistent permission or
+observation failure remains infrastructure failure. Stop signalling after
+definite absence, and reap the direct child independently. Repeated short
+timeouts exercise this lifecycle race. Apple's [group signalling source](https://github.com/apple-oss-distributions/xnu/blob/main/bsd/kern/kern_sig.c)
+filters zombie group members before computing whether any target was found.

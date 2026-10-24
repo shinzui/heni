@@ -62,6 +62,9 @@ suite = bracket (Dir.getTemporaryDirectory >>= \tmp -> mkdtemp (tmp </> "heni-pr
     timed <- run "timeout" ["sleep"] 50000
     assert' "witness before timeout" (outcomeOf timed == Timeout)
     assert' "bounded timeout and cleanup" (case timed of ProcessReport {evidence = StageEvidence {durationSeconds}} -> durationSeconds < 2)
+    forM_ [1 .. 12 :: Int] $ \n -> do
+      repeated <- run ("timeout-race-" ++ show n) ["sleep"] 20000
+      assert' ("repeated group disappearance retains clean timeout: " ++ show repeated) (outcomeOf repeated == Timeout && case repeated of ProcessReport {errors} -> null errors)
     literal <- run "literal" ["echo", "space word", "'quotes'", "$HOME", "; touch nope"] 1000000
     assert' "literal argument command succeeds" (outcomeOf literal == Exited 0)
     bytes <- BS.readFile (root </> "logs/literal.stdout.log")

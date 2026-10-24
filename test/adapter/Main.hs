@@ -59,7 +59,7 @@ checks = bracket (Dir.getTemporaryDirectory >>= \tmp -> mkdtemp (tmp </> "heni-a
   mismatch <- run "replay-mismatch" ["protocol", "input", "replay"] (named RequireReplay) badBuilder
   assert' "opaque token mismatch cannot be caught" (single WrongFailure mismatch)
   replayTimeout <- run "replay-timeout" ["protocol", "input", "replay-timeout"] (named RequireReplay) noHooks
-  assert' "replay timeout is a rejected reproduction with retained stage timeout" (single WrongFailure replayTimeout && case replayTimeout of RunResult {results = [CaseResult {evidence = CaseEvidence {stages}}]} -> any (\StageEvidence {stage, outcome} -> stage == Replay && outcome == Timeout) stages; _ -> False)
+  assert' ("replay timeout is a rejected reproduction with retained stage timeout: " ++ show replayTimeout) (single WrongFailure replayTimeout && case replayTimeout of RunResult {results = [CaseResult {evidence = CaseEvidence {stages}}]} -> any (\StageEvidence {stage, outcome} -> stage == Replay && outcome == Timeout) stages; _ -> False)
   let empty = case named NoReplay of CaseDefinition i d ts es b t _ e mode -> CaseDefinition i d ts es b t (Just "absent") e mode
   uncovered <- run "empty" ["protocol", "input", "intended"] empty noHooks
   assert' "known empty baseline cannot run candidate" (single NotRun uncovered)

@@ -51,6 +51,15 @@ execution, with contained relative syntax and runtime symlink checks. The
 process fixture proves a copied executable runs, traversal is rejected and an
 external symlink is refused before launch.
 
+2026-10-24 EP-8 follow-up: repeated short timeouts reproduced transient macOS
+EPERM during group exit, independently confirmed with Python killpg probes
+(100/100 trials transitioned to ESRCH within milliseconds). Cleanup now polls
+within its existing bounds and clears provisional errors only after definite
+group disappearance. Persistent errors still invalidate evidence; redundant
+signals stop after absence. Twelve short-timeout repetitions were added to
+the process regression. See ADR 4.
+
+
 ## Decision Log
 
 
