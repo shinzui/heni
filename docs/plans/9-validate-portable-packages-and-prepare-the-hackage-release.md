@@ -70,6 +70,22 @@ on GHC 9.12.4/Cabal 3.16.1.0. The initial core archive also passed without Git,
 Nix, Mori, OKF or Python in its executable search path. Final immutable archive
 validation remains in progress; the published matrix distinguishes these runs.
 
+2026-10-24: Native Linux archive validation required assembler/linker variants
+reported by `ghc --info`, and curl for Cabal's TLS transport. Without curl,
+Cabal 3.14.1.1 fell back to plain HTTP and misleading mirror errors (FRIC-4,
+accepted). The whitelist now preserves native build/package tools while
+excluding the optional mutation/repository capabilities under test. Failed
+extractions are retained and retries use fresh directories.
+
+2026-10-24: The archive link check caught Haddock instance-origin links to
+hidden internal modules (FRIC-5, accepted). GHC 9.12.4 bundles Haddock 2.32.0;
+the matching upstream release source confirms unconditional origin links.
+Hackage's standalone Haddock release is older (2.29.1), so it is not substituted
+for the compiler-matched tool. Selective `--show` plus `not-home` emits two
+explicitly non-exposed implementation pages while preserving public homes and
+Cabal exports. All 19 core pages have 100% coverage and no broken own module/
+source links in the focused generated-doc check.
+
 ## Decision Log
 
 

@@ -1,4 +1,7 @@
--- | Owned temporary paths and checked byte inventories. POSIX first release.
+{-# OPTIONS_HADDOCK not-home #-}
+
+-- | Implementation detail, not an exposed module or supported import API.
+-- Owns temporary paths and checked byte inventories for the POSIX implementation.
 module Test.Heni.Internal.Files where
 
 import Control.Exception
@@ -28,6 +31,7 @@ data WorkspaceError = UnsafeSource !Text | SourceChanged | WorkspaceMismatch !Te
 data FileEntry = FileEntry {bytes :: !BS.ByteString, executableBits :: !Int}
   deriving stock (Eq, Show)
 
+-- | Canonical relative targets mapped to immutable file contents.
 type Inventory = Map.Map RelativeTarget FileEntry
 
 -- | Preserve both exceptions when disposal fails after an action already failed.
@@ -35,6 +39,7 @@ data WorkspaceFinalizationError = WorkspaceFinalizationError !(Maybe SomeExcepti
   deriving stock (Show)
   deriving anyclass (Exception)
 
+-- | Mask disposal, retaining both the primary and secondary exception.
 withFinalizer :: forall a. IO a -> IO () -> IO a
 withFinalizer action release = mask $ \restore -> do
   primary <- try (restore action) :: IO (Either SomeException a)
@@ -45,18 +50,22 @@ withFinalizer action release = mask $ \restore -> do
     (Right _, Left e) -> throwIO (WorkspaceFinalizationError Nothing e)
     (Left first, Left second) -> throwIO (WorkspaceFinalizationError (Just first) second)
 
+-- | Lowercase hexadecimal SHA-256 content digest.
 digest :: BS.ByteString -> Text
 digest = Text.pack . show . (hash :: BS.ByteString -> Digest SHA256)
 
+-- | Length-prefix bytes to prevent concatenation ambiguity.
 framed :: BS.ByteString -> BS.ByteString
 framed b = B8.pack (show (BS.length b) ++ ":") <> b
 
+-- | Hash policy, names, executable bits and bytes with explicit framing.
 inventoryDigest :: Text -> Inventory -> Text
 inventoryDigest policy files =
   digest $
     framed (Text.encodeUtf8 policy)
       <> BS.concat [framed (Text.encodeUtf8 (Text.pack (targetPath p))) <> framed (B8.pack (show mode)) <> framed b | (p, FileEntry b mode) <- Map.toAscList files]
 
+-- | Allocate an opaque temporary directory and dispose it after the callback.
 withOwnedDirectory :: String -> (FilePath -> IO a) -> IO a
 withOwnedDirectory prefix action = mask $ \restore -> do
   root <- allocate
@@ -88,6 +97,7 @@ checkedPath root target = do
             (throwIO (UnsafeSource ("non-regular path: " <> Text.pack p)))
           go p rest
 
+-- | Catch only ordinary IO failures, preserving asynchronous exceptions.
 tryIO :: IO a -> IO (Either IOException a)
 tryIO = try
 
@@ -111,6 +121,7 @@ inventory excluded root = Map.fromList <$> walk ""
               pure [(target, FileEntry b (fromIntegral (Posix.fileMode st .&. 0o111)))]
             else throwIO (UnsafeSource ("special source file is unsupported: " <> Text.pack relative))
 
+-- | Write independent regular files with their captured executable bits.
 materialize :: FilePath -> Inventory -> IO ()
 materialize root files = forM_ (Map.toAscList files) $ \(target, FileEntry b mode) -> do
   p <- checkedPath root target

@@ -25,3 +25,9 @@ Source/docs hashes and readiness evidence are repository-only records excluded
 from source distributions to avoid self-reference. Candidate upload, rendered
 Hackage review, account authorization and publication remain separate release
 actions after local readiness; local artifacts never imply an upload occurred.
+
+Haddock instance-origin links can target hidden definition modules. Release docs
+selectively generate the two implementation definition pages with `--show`,
+marking them `not-home` and explicitly outside the supported import API. Public
+facades remain documentation homes and installed Cabal module exports do not
+change. Check generated module and source links as well as coverage percentages.

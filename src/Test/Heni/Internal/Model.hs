@@ -1,4 +1,7 @@
--- | Shared model. Constrained constructors are hidden by the public modules.
+{-# OPTIONS_HADDOCK not-home #-}
+
+-- | Implementation detail, not an exposed module or supported import API.
+-- Public facades hide constrained constructors and own their documentation.
 module Test.Heni.Internal.Model where
 
 import Data.Char (isAlphaNum, isAscii)
@@ -33,6 +36,7 @@ mkCaseId t = CaseId <$> identifier "case.id" t
 mkCommandId :: Text -> Either ConfigError CommandId
 mkCommandId t = CommandId <$> identifier "command.id" t
 
+-- | Shared ASCII identity check used by the public smart constructors.
 identifier :: Text -> Text -> Either ConfigError Text
 identifier f t
   | Text.null t || not (Text.all (\c -> isAscii c && (isAlphaNum c || c `elem` ("-_." :: String))) t) =

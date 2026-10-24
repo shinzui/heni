@@ -33,6 +33,11 @@ requires Git. CLI/reporters, Haddock, schemas, standalone 0/1/2 exit checks and 
 four-family migration trial run from archives. Use `--archives DIRECTORY` to
 validate an existing immutable archive set on another machine.
 
+The script selectively generates two non-exposed implementation pages so
+Haddock's instance-origin links resolve. Their `not-home` attributes keep public
+facades as documentation homes; this does not expose package modules or private
+constructors. Use the script's Haddock flags when rebuilding release docs.
+
 Inspect generated module pages and source links, command help, examples,
 troubleshooting, package contents and dependency plans. Copy accepted Haddock
 archives from the fresh extraction's dist-newstyle tree beside the source

@@ -93,7 +93,16 @@ for required in ["schemas/manifest-v1.schema.json", "examples/minimal/src/Capaci
 # inheriting Git, Nix, Mori, OKF, Python, or a consumer mutation runner.
 tools = fresh / "core-tools"
 tools.mkdir()
-for command in "cabal ghc ghc-pkg runghc runhaskell hsc2hs cc gcc clang as ld ar ranlib strip libtool make sh pkg-config xcrun xcodebuild install tar gzip uname rm mkdir cp mv cat sed awk perl tr touch chmod sort cut head tail env readlink dirname basename pwd find ln getconf sw_vers xattr dsymutil otool nm lipo codesign expr echo grep date".split():
+build_tools = """
+cabal ghc ghc-pkg runghc runhaskell hsc2hs cc gcc clang as ld ld.gold ld.bfd ld.lld
+ar ranlib strip libtool objcopy objdump readelf cpp c++ g++ strings make pkg-config
+xcrun xcodebuild dsymutil otool nm lipo codesign sw_vers xattr
+sh curl install tar gzip uname rm rmdir mkdir cp mv cat sed awk perl tr touch chmod
+sort uniq cut head tail env readlink realpath dirname basename pwd find ln getconf
+ls printf sleep wc test diff cmp dd file tee od iconv ldd true false du df ps
+hostname which id whoami mktemp timeout setarch getent tput stty expr echo grep date
+""".split()
+for command in build_tools:
     found = shutil.which(command)
     if found:
         (tools / command).symlink_to(found)
@@ -139,7 +148,7 @@ project(cli / "cabal.project", [".", "../heni-0.1.0.0"])
 run("cli-with-core-archive", ["cabal", "test", "heni-cli:heni-cli-test", "-j1", "--test-show-details=direct"], cli)
 project(fresh / "cabal.project", [p.name for p in packages.values()])
 run("optional-reporters", ["cabal", "test", "heni-tasty:heni-tasty-test", "heni-hspec:heni-hspec-test", "-j1", "--test-show-details=direct"], fresh)
-run("haddock", ["cabal", "haddock", "all", "--haddock-for-hackage", "--haddock-executables", "-j1"], fresh)
+run("haddock", ["cabal", "haddock", "all", "--haddock-for-hackage", "--haddock-executables", "--haddock-option=--show=Test.Heni.Internal.Model", "--haddock-option=--show=Test.Heni.Internal.Files", "-j1"], fresh)
 text = (fresh / "haddock.log").read_text()
 for line in text.splitlines():
     if "% (" in line and "in 'Test.Heni" in line:
