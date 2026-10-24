@@ -355,8 +355,6 @@ runCampaign RunOptions {sourceRoot, outputDirectory, sourcePolicy, selectedCases
           Baseline.clearBaselineCache baselineCache
           forM_ retainedWorker Build.retireBuildWorker
         atomicModify_ resultsRef (Map.insert caseId result)
-        journal "case"
-        notifyProgress (CaseFinished result)
       patchRunner caseId workspace args = do
         -- Patch check/apply share the exact supervisor used by build/test.
         let prefix = Text.unpack (caseIdText caseId <> if "--check" `elem` args then "-patch-check" else "-patch-apply")
@@ -418,6 +416,9 @@ runCampaign RunOptions {sourceRoot, outputDirectory, sourcePolicy, selectedCases
                       failed = classifyCase definition (CaseEvidence b m stages errors (clean ++ [Text.pack (displayException e)]) stop)
                   atomicModify_ resultsRef (Map.insert caseId failed)
                   journal "resource-failure"
+            completed <- Map.lookup caseId <$> readIORef resultsRef
+            journal "case"
+            forM_ completed (notifyProgress . CaseFinished)
   case attempted of
     Left (e :: SomeException) -> do
       atomicModify_ failuresRef (++ map RunInfrastructure (finalizationErrors e))
@@ -573,6 +574,7 @@ withSelector CaseDefinition {selector} (Command executable arguments sensitive w
 originalException :: SomeException -> SomeException
 originalException e = case fromException e of
   Just (WorkspaceFinalizationError (Just primary) _) -> originalException primary
+  Just (WorkspaceFinalizationError Nothing secondary) -> originalException secondary
   _ -> case fromException e of
     Just (Resource.ResourceError _ _ cause) -> originalException cause
     _ -> e

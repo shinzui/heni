@@ -178,6 +178,13 @@ checks = bracket (Dir.getTemporaryDirectory >>= \p -> mkdtemp (p </> "heni-sched
   assert' "failed cleanup retires cached evidence; next case is fresh" (afterFailure == 2 && case resetFailed of RunResult {results = CaseResult {verdict = InfrastructureError} : CaseResult {verdict = Caught} : _} -> True; _ -> False)
   secretReport <- BS.readFile (root </> "reuse/report.json")
   assert' "resource values and secret comparison never enter reports" (not ("secret-not-reportable" `BS.isInfixOf` secretReport))
+  finishedEvents <- newIORef []
+  let brokenTeardown = makeProvider "DB" R.CaseScope False True
+      observeFinished (CaseFinished CaseResult {caseId, verdict}) = modify_ finishedEvents (++ [(caseId, verdict)])
+      observeFinished _ = pure ()
+  releasedRun <- runCampaign ((options "final-event-after-release" 2) {resources = [brokenTeardown], progress = observeFinished}) campaign
+  finalEvents <- readIORef finishedEvents
+  assert' "one final progress event after failing case teardown" (sort finalEvents == sort (outcomes releasedRun) && length finalEvents == 3 && all ((== InfrastructureError) . snd) finalEvents)
   priorEnv <- lookupEnv "HENI_ENV_CONFORMANCE"
   let restoreEnv = maybe (unsetEnv "HENI_ENV_CONFORMANCE") (setEnv "HENI_ENV_CONFORMANCE") priorEnv
   ( do

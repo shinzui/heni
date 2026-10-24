@@ -30,3 +30,8 @@ universal invalidation rule, so no portable incremental-build flag is offered.
 Same-size/coarse-mtime adversarial fixtures and fresh-mode parity are required
 for a provider's claimed compatibility. Timings remain observations, while
 isolation and invocation counts are correctness gates.
+
+Emit the final case progress event only after case-scoped resources have been
+disposed. Teardown can revise a semantic detection to infrastructure failure;
+observers must receive that same final case verdict. Worker/campaign teardown
+remains run-level confidence evidence because those scopes span multiple cases.

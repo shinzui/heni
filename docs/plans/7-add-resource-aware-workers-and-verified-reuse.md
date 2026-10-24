@@ -55,6 +55,12 @@ ordering between consumers, while final result order remains the selected
 ledger order.
 
 
+2026-10-24 (EP-8 integration): Case-scoped teardown must precede the final
+`CaseFinished` observer event. The scheduler now emits exactly one final event
+after resource disposal, including its revised infrastructure verdict; the
+new actual-campaign regression matches all three events to final report results.
+Secondary-only asynchronous finalization errors retain their original cause.
+
 ## Decision Log
 
 
