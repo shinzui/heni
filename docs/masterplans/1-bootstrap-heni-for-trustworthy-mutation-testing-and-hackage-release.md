@@ -56,8 +56,8 @@ Apply [core standards](mori://shinzui/haskell-jitsurei/docs/core-standards), [re
 | # | Title | Path | Hard Deps | Soft Deps | Status |
 | --- | --- | --- | --- | --- | --- |
 | 1 | Public model and executable API contracts | [docs/plans/1-establish-the-public-model-and-executable-api-contracts.md](../plans/1-establish-the-public-model-and-executable-api-contracts.md) | None | None | Complete |
-| 2 | Isolated snapshots and checked mutations | [docs/plans/2-implement-isolated-snapshots-and-checked-mutations.md](../plans/2-implement-isolated-snapshots-and-checked-mutations.md) | EP-1 | None | In Progress |
-| 3 | Bounded processes and cancellation | [docs/plans/3-supervise-bounded-processes-and-cancellation.md](../plans/3-supervise-bounded-processes-and-cancellation.md) | EP-1 | EP-2 | Not Started |
+| 2 | Isolated snapshots and checked mutations | [docs/plans/2-implement-isolated-snapshots-and-checked-mutations.md](../plans/2-implement-isolated-snapshots-and-checked-mutations.md) | EP-1 | None | Complete |
+| 3 | Bounded processes and cancellation | [docs/plans/3-supervise-bounded-processes-and-cancellation.md](../plans/3-supervise-bounded-processes-and-cancellation.md) | EP-1 | EP-2 | In Progress |
 | 4 | Baseline-to-report campaigns | [docs/plans/4-run-baseline-to-report-mutation-campaigns.md](../plans/4-run-baseline-to-report-mutation-campaigns.md) | EP-2, EP-3 | None | Not Started |
 | 5 | Strict manifests and shared CLI | [docs/plans/5-expose-strict-manifests-and-the-shared-cli.md](../plans/5-expose-strict-manifests-and-the-shared-cli.md) | EP-4 | None | Not Started |
 | 6 | Named-test adapters, replay, crash evidence | [docs/plans/6-add-named-test-adapters-replay-and-crash-evidence.md](../plans/6-add-named-test-adapters-replay-and-crash-evidence.md) | EP-4 | EP-5 | Not Started |
@@ -116,7 +116,7 @@ Cross-plan ADR topics are package/public API boundaries (EP-1), snapshot and edi
 ## Progress
 
 
-EP-1 completed on 2026-10-24 with ordinary Cabal build, 28 adversarial classification scenarios, API construction/label fixtures and Haddock. EP-2 is In Progress; EP-3 is also eligible after EP-1. Later children await their hard prerequisites. RES-1 and RES-2 supply the use cases and ecosystem evidence. The remaining integration gates are the real serial cycle in EP-4, the combined CLI/library migration suite in EP-8, and extracted-source publication readiness in EP-9. No compiler compatibility, runtime performance, or migration savings have yet been measured.
+EP-1 completed on 2026-10-24 with ordinary Cabal build, 28 adversarial classification scenarios, API construction/label fixtures and Haddock. EP-2 completed with isolated snapshot/edit/recovery tests. EP-3 is In Progress. Later children await their hard prerequisites. RES-1 and RES-2 supply the use cases and ecosystem evidence. The remaining integration gates are the real serial cycle in EP-4, the combined CLI/library migration suite in EP-8, and extracted-source publication readiness in EP-9. No compiler compatibility, runtime performance, or migration savings have yet been measured.
 
 
 ## Surprises & Discoveries

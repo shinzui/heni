@@ -11,6 +11,12 @@ provenance:
     model: "gpt-6-astra"
     harness: "codex-cli"
     at: 2026-10-24T14:33:08Z
+  revisions:
+    - model: "gpt-6.1-sol"
+      harness: "codex-cli"
+      at: 2026-10-24T15:07:55Z
+      mode: "implement"
+      note: "Implement immutable byte snapshots, checked staged edits, and scoped disposable workspaces"
 ---
 
 # Implement isolated snapshots and checked mutations
@@ -28,27 +34,29 @@ A caller can snapshot explicitly selected source contents, apply checked mutatio
 ## Progress
 
 
-- [ ] M1: Snapshots preserve declared source bytes and isolate writable workspaces.
-- [ ] M2: Replacement, patch, and custom checked edits record exact changes and reject unsafe or invalid targets.
-- [ ] M3: Failed edits and reset failures cannot contaminate another case or the active checkout.
+- [x] M1 (2026-10-24; deterministic SHA-256, dirty/untracked/binary capture and independent-copy checks pass): Snapshots preserve declared source bytes and isolate writable workspaces.
+- [x] M2 (2026-10-24; checked replacement, create/delete, textual patches, unsafe-path and UTF-8 tests pass): Replacement, patch, and custom checked edits record exact changes and reject unsafe or invalid targets.
+- [x] M3 (2026-10-24; partial-edit/patch rejection, reset-failure, cancellation and fresh-next-case checks pass): Failed edits and reset failures cannot contaminate another case or the active checkout.
 
 
 ## Surprises & Discoveries
 
 
-None yet.
+Double capture and immutable in-memory bytes avoid exposing a mutable snapshot path. Memory scales with selected source bytes; this is documented rather than claiming a streaming implementation.
 
 
 ## Decision Log
 
 
-No implementation decisions yet; the approach below is the initial proposed contract.
+2026-10-24: Use bracket-only workspace allocation/disposal so callers cannot construct arbitrary cleanup targets. The proposed standalone discardWorkspace is replaced by scoped withWorkspace. Textual Git patches use an injected bounded runner; EP-4 must wire the EP-3 supervisor.
+
+2026-10-24: Reject source symlinks and special files, keep executable bits in identities, and publish staged edits only after a complete independent inventory. See [the snapshot ADR](../adr/3-immutable-snapshots-and-staged-edits.md).
 
 
 ## Outcomes & Retrospective
 
 
-To be filled during implementation, including acceptance evidence, remaining limits, and friction triage.
+`cabal test heni:heni-workspace heni:heni-unit --test-show-details=direct` passes. Tests prove checkout preservation, binary/dirty/untracked capture, exact replacements, creation/deletion, UTF-8 rejection, symlink write/source rejection, no published partial candidate, stale multi-file patches, missing Git, cancellation and reset failure. Snapshot/edit boundaries are distilled in docs/adr/3-immutable-snapshots-and-staged-edits.md. FRIC-1 is accepted: the registered directory source was absent, so authoritative tagged upstream source was inspected. Linux execution remains a CI/release gate; this local run was macOS.
 
 
 ## Context and Orientation
@@ -58,7 +66,7 @@ At creation there is no implementation. Begin only when `docs/plans/1-establish-
 
 A source snapshot is an immutable, content-identified copy of declared inputs. A workspace is a disposable mutable copy of that snapshot. A touched-file inventory records before/after bytes or digests, creation/deletion, and relevant mode changes. It is evidence of what actually changed, not just what an edit declared. Workspace isolation protects ordinary file operations; it is not a security sandbox for arbitrary consumer IO or subprocesses.
 
-No local ADR existed during creation. The prerequisite creates Heni's public-boundary and evidence decisions; read their actual paths when available and add links here before implementation. This plan owns the separate durable decision on snapshot policy and edit confinement. Follow the core strict-record/explicit-deriving conventions without bringing orphan label instances into the library's import closure.
+The prerequisite records [framework neutrality](../adr/1-framework-neutral-core.md) and [evidence-owned classification](../adr/2-evidence-owned-classification.md). This plan owns the separate durable decision on snapshot policy and edit confinement. Follow the core strict-record/explicit-deriving conventions without bringing orphan label instances into the library's import closure.
 
 
 ## Plan of Work

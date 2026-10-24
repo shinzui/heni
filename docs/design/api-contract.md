@@ -16,7 +16,7 @@ unchanged controls and signal probes. No real runner is implemented by EP-1.
 
 `CaseDefinition` contains serializable data. `CaseHooks` holds trusted IO
 functions separately. `WorkspaceOps` supplies checked reads and writes; the
-workspace owner will add checked creation/deletion. Arbitrary IO can escape
+workspace owner supplies checked creation/deletion. Arbitrary IO can escape
 these operations: this is an API capability, not an OS sandbox. A custom
 evidence callback returns evidence or a rejection; it cannot return a verdict.
 The execution owner must preserve actual process outcome and all validity

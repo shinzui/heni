@@ -22,3 +22,20 @@ text 2.1.4 within 2.1, and containers 0.7–0.8. Broader containers bounds use
 stable shared operations; they are not a claim that all admitted versions have
 been tested. EP-9 owns final bound testing and the advertised release matrix.
 No local checkout pin or unreleased dependency is required by Cabal.
+
+Workspace dependencies were checked on 2026-10-24. Hackage reports directory
+1.3.11.0 (upstream `v1.3.11.0`, `bf2afc2ddf9d3bcf360ba2eec08d3deb70874c3a`),
+process 1.6.30.0 (`v1.6.30.0`, `11fd247ad33208da7a914acf15d4a09d64a6a4c4`),
+crypton 2.2.5 (`crypton-v2.2.5`, `74738d1c8da69649f3e629f49a964fe942a9e79a`),
+bytestring 0.12.2.0 (`0.12.2.0`, `d984ad00644c0157bad04900434b9d36f23633c5`),
+unix 2.8.8.0 (`v2.8.8.0`) and filepath 1.5.5.0. The locally tested workspace
+set uses directory 1.3.10.1, bytestring 0.12.2.0, unix 2.8.8.0, filepath
+1.5.5.0, process 1.6.26.1 (test helper) and released crypton 2.2.5. Latest
+versions and tested versions are deliberately recorded separately.
+
+Mori located source and hashing guidance at mori://kazu-yamamoto/crypton,
+mori://haskell/bytestring and mori://haskell/process. The registered
+mori://haskell/directory source was absent (FRIC-1 in docs/friction-log), so
+System.Directory was inspected from the official v1.3.10.1 tag. Unix and
+filepath had no owning registry entries; official tagged source was used for
+POSIX file status, temporary directories, signal groups and path operations.

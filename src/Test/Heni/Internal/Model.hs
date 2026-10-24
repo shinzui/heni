@@ -108,6 +108,8 @@ data Command = Command
 -- | Checked text, patch, or registered Haskell edit. Patches are UTF-8 content.
 data Edit
   = Replace !RelativeTarget !Text !Text !Int
+  | Create !RelativeTarget !Text
+  | Delete !RelativeTarget !Text
   | Patch !Text
   | CustomEdit !Text
   deriving stock (Eq, Show, Generic)
@@ -146,7 +148,9 @@ data CaseDefinition = CaseDefinition
 -- | Operations supplied by the workspace owner. Hooks are trusted IO, not a sandbox.
 data WorkspaceOps = WorkspaceOps
   { readTarget :: !(RelativeTarget -> IO Text),
-    writeTarget :: !(RelativeTarget -> Text -> IO ())
+    writeTarget :: !(RelativeTarget -> Text -> IO ()),
+    createTarget :: !(RelativeTarget -> Text -> IO ()),
+    deleteTarget :: !(RelativeTarget -> Text -> IO ())
   }
 
 -- | Haskell-only extension points. Returned evidence still passes all validity gates.
