@@ -12,8 +12,9 @@ A failed baseline yields `not-run` for its candidate and a run-level
 BaselineFailure with affected IDs. A failing control yields its observed
 case verdict and a ControlFailure. Neither contributes to semantic scoring.
 Infrastructure takes precedence over matching diagnostic output. Setup and
-teardown nonzero exits are infrastructure failures. Truncated stage output is
-untrustworthy, including when an apparent witness survives truncation. Timeout
+teardown nonzero exits are infrastructure failures. Evidence marked truncated is
+untrustworthy. The supervisor may truncate raw log artifacts while retaining
+exact byte-matched witnesses separately; this does not mark evidence unavailable. Timeout
 and runner cancellation never prove a crash or assertion detection.
 
 Semantic expectations require a successful Build. A build failure is

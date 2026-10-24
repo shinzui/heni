@@ -11,6 +11,12 @@ provenance:
     model: "gpt-6-astra"
     harness: "codex-cli"
     at: 2026-10-24T14:33:08Z
+  revisions:
+    - model: "gpt-6.1-sol"
+      harness: "codex-cli"
+      at: 2026-10-24T15:17:29Z
+      mode: "implement"
+      note: "Implement bounded POSIX process groups, concurrent log drains, witness retention, and cancellation evidence"
 ---
 
 # Supervise bounded processes and cancellation
@@ -28,27 +34,29 @@ A caller can launch a structured command, bound its runtime and output, cancel i
 ## Progress
 
 
-- [ ] M1: Structured commands produce bounded, distinct exit/signal/launch evidence.
-- [ ] M2: Timeout and cancellation clean up owned process groups on Linux and macOS.
-- [ ] M3: Output limits, callback failure, and cleanup errors preserve trustworthy evidence.
+- [x] M1 (2026-10-24; literal argv, launch, exit and SIGABRT fixtures pass): Structured commands produce bounded, distinct exit/signal/launch evidence.
+- [x] M2 (2026-10-24; timeout, ignored SIGTERM, inherited pipes and repeated cancellation pass on macOS): Timeout and cancellation clean up owned process groups on Linux and macOS.
+- [x] M3 (2026-10-24; dual-stream flood, retained split witness, invalid UTF-8 and observer failure tests pass): Output limits, callback failure, and cleanup errors preserve trustworthy evidence.
 
 
 ## Surprises & Discoveries
 
 
-None yet.
+The process package reports POSIX signal termination as negative ExitFailure; an ordinary positive shell-style code must remain a normal exit. Raw log truncation and unavailable classifier evidence are separate facts: exact requested byte witnesses can remain complete after logs stop retaining bytes.
 
 
 ## Decision Log
 
 
-No implementation decisions yet; the approach below is the initial proposed contract.
+2026-10-24: Use a narrow POSIX group adapter over released process/unix APIs, not shell exit conventions. Group cleanup remains bounded even if the leader exited; detached sessions are outside the contract.
+
+2026-10-24: Scan diagnostic UTF-8 bytes independently per stream and retain exact witnesses separately. Only proved witness text enters classifier evidence, avoiding false matches introduced by lenient decoding. See [the process ADR](../adr/4-posix-process-ownership.md).
 
 
 ## Outcomes & Retrospective
 
 
-To be filled during implementation, including acceptance evidence, remaining limits, and friction triage.
+`cabal test heni:heni-process heni:heni-unit --test-show-details=direct` passes on macOS/GHC 9.12.4. The fixture is a declared Cabal build tool with an outer watchdog. It covers literal arguments, launch failure, actual signal versus exit, witness-before-timeout, concurrent output flooding, bounded retained logs, chunk-spanning witnesses, invalid UTF-8, ignored SIGTERM, leader-exit pipe inheritance, repeated cancellation and observer failure. The detached fixture is explicitly cleaned up and documents the supervision boundary. Linux execution is configured in CI and remains a final release gate. FRIC-2 is accepted: Fourmolu rejected a compiling explicit-brace nested case, so the same expression now uses ordinary indented layout. Ownership and limitations are distilled in docs/adr/4-posix-process-ownership.md.
 
 
 ## Context and Orientation
