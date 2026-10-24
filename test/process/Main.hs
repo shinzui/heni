@@ -8,7 +8,7 @@ import Data.Set qualified as Set
 import Data.Text qualified as Text
 import System.Directory qualified as Dir
 import System.FilePath ((</>))
-import System.Posix.Files (fileExist)
+import System.Posix.Files (createSymbolicLink, fileExist, setFileMode)
 import System.Posix.Signals
 import System.Posix.Temp (mkdtemp)
 import System.Posix.Types qualified
@@ -43,6 +43,20 @@ suite = bracket (Dir.getTemporaryDirectory >>= \tmp -> mkdtemp (tmp </> "heni-pr
     assert' "launch failure" (case outcomeOf missing of LaunchFailed {} -> True; _ -> False)
     exited <- run "exit" ["exit", "1"] 1000000
     assert' ("exit differs from signal: " ++ show (outcomeOf exited)) (outcomeOf exited == Exited 1)
+    let localCommand = Command "./local-fixture" ["exit", "1"] Set.empty Nothing [] (checked (mkStageBudget 2000000)) (OutputPolicy 1024)
+    deferred <- validateExecutable localCommand
+    assert' "workspace executable availability is deferred until build" (deferred == Right ())
+    installed <- Dir.findExecutable "heni-fixture" >>= maybe (error "missing fixture") pure
+    Dir.copyFile installed (workspaceRoot workspace </> "local-fixture")
+    setFileMode (workspaceRoot workspace </> "local-fixture") 0o700
+    local <- runCommand (opts "workspace-program") workspace Test localCommand
+    assert' "built workspace executable runs from owned tree" (outcomeOf local == Exited 1)
+    assert' "workspace executable traversal is invalid" (case validateCommand (Command "./../escape" [] Set.empty Nothing [] (checked (mkStageBudget 100000)) (OutputPolicy 100)) of Left _ -> True; _ -> False)
+    Dir.removeFile (workspaceRoot workspace </> "local-fixture")
+    createSymbolicLink installed (workspaceRoot workspace </> "local-fixture")
+    escaped <- runCommand (opts "workspace-symlink") workspace Test localCommand
+    assert' "workspace executable symlinks are rejected before launch" (case outcomeOf escaped of LaunchFailed {} -> True; _ -> False)
+    Dir.removeFile (workspaceRoot workspace </> "local-fixture")
     signaled <- run "signal" ["signal"] 1000000
     assert' "actual signal" (outcomeOf signaled == Signaled (fromIntegral sigABRT))
     timed <- run "timeout" ["sleep"] 50000

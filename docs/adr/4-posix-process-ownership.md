@@ -18,3 +18,9 @@ Linux and macOS are the first target platforms; Windows is deliberately
 unsupported. Ordinary POSIX groups do not contain detached descendants or
 recover from runner SIGKILL. Document and test this boundary instead of
 promising an OS sandbox. Consumers requiring stronger containment supply one.
+
+Host executable availability is checked before a campaign. Explicit `./...`
+programs are workspace-local build products: validate their contained relative
+syntax at preflight and resolve them in the stage's checked cwd after build.
+Reject runtime symlink escapes. Applicability checking can defer their existence
+without running a build; this must not be presented as proof they already exist.

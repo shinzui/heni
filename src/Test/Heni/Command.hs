@@ -14,6 +14,7 @@ module Test.Heni.Command
   )
 where
 
+import Data.List (isPrefixOf)
 import Data.Set qualified as Set
 import Test.Heni.Internal.Model
 
@@ -21,6 +22,7 @@ import Test.Heni.Internal.Model
 validateCommand :: Command -> Either ConfigError ()
 validateCommand Command {executable, arguments, sensitiveArguments, environment, output = OutputPolicy {limitBytes}}
   | null executable || '\0' `elem` executable = bad "executable" "expected an executable without NUL"
+  | "./" `isPrefixOf` executable && invalidWorkspaceExecutable = bad "executable" "workspace executable must be a contained relative path"
   | any (elem '\0') arguments = bad "arguments" "NUL in argument"
   | any (\i -> i < 0 || i >= length arguments) (Set.toList sensitiveArguments) = bad "sensitiveArguments" "argument index is out of range"
   | limitBytes <= 0 = bad "output.limitBytes" "expected a positive output limit"
@@ -28,6 +30,7 @@ validateCommand Command {executable, arguments, sensitiveArguments, environment,
   | length (map fst environment) /= length (unique (map fst environment)) = bad "environment" "duplicate environment key"
   | otherwise = Right ()
   where
+    invalidWorkspaceExecutable = case mkRelativeTarget (drop 2 executable) of Left _ -> True; Right _ -> False
     bad f m = Left (ConfigError f m)
     unique [] = []
     unique (x : xs) = x : unique (filter (/= x) xs)

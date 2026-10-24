@@ -13,10 +13,10 @@ where
 
 import Control.Concurrent
 import Control.Exception hiding (handle)
-import Control.Monad (unless)
+import Control.Monad (unless, when)
 import Data.ByteString qualified as BS
 import Data.IORef
-import Data.List (nub)
+import Data.List (isPrefixOf, nub)
 import Data.Map.Strict qualified as Map
 import Data.Text (Text)
 import Data.Text qualified as Text
@@ -28,7 +28,7 @@ import System.FilePath (isPathSeparator, (</>))
 import System.IO
 import System.Process qualified as P
 import System.Timeout (timeout)
-import Test.Heni.Case (ConfigError (..))
+import Test.Heni.Case (ConfigError (..), mkRelativeTarget, targetPath)
 import Test.Heni.Command
 import Test.Heni.Expectation
 import Test.Heni.Internal.Process.Posix
@@ -69,10 +69,13 @@ data ProcessAborted = ProcessAborted {report :: !ProcessReport, cause :: !SomeEx
   deriving stock (Show)
   deriving anyclass (Exception)
 
--- | Resolve availability before execution. Launch races are still handled in IO.
+-- | Resolve host tools before execution. Explicit ./workspace programs are
+-- validated structurally here and resolved after the build, inside its workspace.
+-- Launch races are still handled in IO.
 validateExecutable :: Command -> IO (Either ConfigError ())
 validateExecutable command@Command {executable} = case validateCommand command of
   Left e -> pure (Left e)
+  Right () | "./" `isPrefixOf` executable -> pure (Right ())
   Right () -> do
     found <- Dir.findExecutable executable
     pure $ maybe (Left (ConfigError "executable" "executable is unavailable")) (const (Right ())) found
@@ -92,9 +95,14 @@ runCommand ProcessOptions {logDirectory, logPrefix, graceBudget, witnesses, envi
     Right () | sum (map (BS.length . Text.encodeUtf8) witnesses) > 65536 || any Text.null witnesses -> failed "diagnostic witnesses must be nonempty and total at most 64KiB"
     Right () -> do
       launch <- try $ do
-        cwd <- maybe (pure (workspaceRoot workspace)) (checkedWorkspacePath workspace) workingDirectory
+        cwd <- maybe (pure (workspaceRoot workspace)) (checkedWorkspacePath workspace) workingDirectory `catch` workspaceLaunchError
         isDirectory <- Dir.doesDirectoryExist cwd
         unless isDirectory (ioError (userError "working directory does not exist"))
+        when ("./" `isPrefixOf` executable) $ do
+          let relative = maybe "" ((++ "/") . targetPath) workingDirectory ++ drop 2 executable
+          target <- either (ioError . userError . show) pure (mkRelativeTarget relative)
+          _ <- checkedWorkspacePath workspace target `catch` workspaceLaunchError
+          pure ()
         inherited <- getEnvironment
         let overrides = Map.fromList environment
             effective = Map.toList (overrides `Map.union` foldr Map.delete (Map.fromList inherited) environmentRemovals)
@@ -106,6 +114,7 @@ runCommand ProcessOptions {logDirectory, logPrefix, graceBudget, witnesses, envi
         Left (e :: IOException) -> failed (Text.pack (show e))
         Right result -> pure result
   where
+    workspaceLaunchError (e :: WorkspaceError) = ioError (userError (show e))
     supervise started cwd effective outLog errLog = mask $ \restore -> do
       -- Dependency-owned record update is isolated to the process adapter; no
       -- label instances propagate through the public library.

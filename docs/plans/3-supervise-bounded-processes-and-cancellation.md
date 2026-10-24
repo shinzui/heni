@@ -45,6 +45,12 @@ A caller can launch a structured command, bound its runtime and output, cancel i
 The process package reports POSIX signal termination as negative ExitFailure; an ordinary positive shell-style code must remain a normal exit. Raw log truncation and unavailable classifier evidence are separate facts: exact requested byte witnesses can remain complete after logs stop retaining bytes.
 
 
+2026-10-24 (EP-8 integration): A checker built into its workspace cannot exist
+at host-tool preflight. Explicit `./...` programs now defer availability until
+execution, with contained relative syntax and runtime symlink checks. The
+process fixture proves a copied executable runs, traversal is rejected and an
+external symlink is refused before launch.
+
 ## Decision Log
 
 

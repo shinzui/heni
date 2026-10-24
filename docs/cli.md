@@ -68,3 +68,8 @@ Named-test adapters, required replay and explicit crash probes are described in
 
 See [scheduling and resource contracts](design/scheduling.md) for portable resource
 claims, baseline reuse identities, external reset obligations and build-job budgets.
+
+Host tools are checked before execution. An explicit `./path/to/program` is a
+workspace-local build product; `check` validates its path but defers existence
+until the build/test lifecycle. It never builds the program during applicability
+checking. Traversal and runtime symlink escapes are rejected.
