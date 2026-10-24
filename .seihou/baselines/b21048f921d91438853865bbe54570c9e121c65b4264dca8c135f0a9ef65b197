@@ -12,4 +12,5 @@ cabal.project.local
 db/
 result
 result-*
+.heni-runs/
 .pre-commit-config.yaml
