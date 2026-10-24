@@ -1,0 +1,63 @@
+{
+  "schemaVersion": 1,
+  "commands": {
+    "build": {
+      "executable": "heni-fixture",
+      "arguments": [
+        "exit",
+        "0"
+      ]
+    },
+    "test": {
+      "executable": "heni-fixture",
+      "arguments": [
+        "check",
+        "input",
+        "diagnostic"
+      ]
+    }
+  },
+  "cases": [
+    {
+      "id": "caught",
+      "description": "Detect the intended fault",
+      "edits": [
+        {
+          "kind": "replace",
+          "path": "input",
+          "old": "anchor",
+          "new": "mutant"
+        }
+      ],
+      "build": "build",
+      "test": "test",
+      "expect": {
+        "kind": "diagnostic",
+        "stage": "test",
+        "exitCode": 1,
+        "outputContains": "capacity rule violated"
+      },
+      "resources": [
+        "DB١"
+      ]
+    }
+  ],
+  "resources": [
+    {
+      "name": "DB١",
+      "scope": "case",
+      "identity": "fixture",
+      "version": "v1",
+      "epoch": "clean",
+      "setup": "build",
+      "reset": "build",
+      "teardown": "build"
+    }
+  ],
+  "execution": {
+    "workers": 2,
+    "baselineReuse": {
+      "toolchain": "fixture/v1"
+    }
+  }
+}

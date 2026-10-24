@@ -27,8 +27,8 @@ name. A custom nested output location must be excluded from source capture.
 Repeat `--case` and `--tag` freely. Values within each kind form a union; the
 case and tag sets are intersected. Selection retains author order. Unknown
 explicit IDs and empty intersections fail before execution. The current
-default is serial fresh-copy execution; `--jobs 1` is accepted and larger
-values fail clearly until scheduling support lands.
+default is serial fresh-copy execution. `--jobs N` selects 1–256 workers and
+overrides manifest `execution.workers`; resource capacities still apply.
 
 `run` exits 0 only when the library reports a trustworthy met contract, 1 for
 contract failure, and 2 for configuration or infrastructure failure. SIGINT
@@ -59,9 +59,12 @@ The [manifest schema](../schemas/manifest-v1.schema.json) defines wire shape;
 the decoder also checks semantic references and edit/expectation constraints.
 Generic diagnostics, intentional build rejection, unchanged controls, named-test
 protocol adapters, required replay and attempt-bound crash probes are supported.
-Custom Haskell functions cannot be serialized. Resource options remain reserved
-until the scheduling contract is implemented. Unsupported features never silently
+Custom Haskell functions and build-tool observation verifiers cannot be serialized.
+Scoped resource commands and baseline reuse use the shared runner. Unsupported features never silently
 fall back to ordinary diagnostic matching.
 
 Named-test adapters, required replay and explicit crash probes are described in
 [adapter contracts](design/adapters.md), with runnable manifests in examples/adapters.
+
+See [scheduling and resource contracts](design/scheduling.md) for portable resource
+claims, baseline reuse identities, external reset obligations and build-job budgets.

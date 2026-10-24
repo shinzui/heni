@@ -15,8 +15,8 @@ exampleCampaign = checked (mkCampaign commands [(c, noHooks) | c <- cases])
     command args = Command "cabal" args Set.empty Nothing [] budget (OutputPolicy 1048576)
     commands =
       Map.fromList
-        [ (commandId "build", command ["build", "fixture-test", "--offline"]),
-          (commandId "test", command ["test", "fixture-test", "--offline", "--test-show-details=direct"])
+        [ (commandId "build", command ["build", "fixture-test", "--offline", "-j1"]),
+          (commandId "test", command ["test", "fixture-test", "--offline", "-j1", "--test-show-details=direct"])
         ]
     target = checked (mkRelativeTarget "src/Capacity.hs")
     define ident old new =

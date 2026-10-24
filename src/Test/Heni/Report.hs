@@ -14,16 +14,19 @@ where
 import Control.Exception
 import Control.Monad (forM_, unless)
 import Data.Aeson
+import Data.Aeson.Key qualified as Key
 import Data.Aeson.KeyMap qualified as KM
 import Data.Aeson.Types (Parser, parseEither)
 import Data.ByteString qualified as BS
 import Data.ByteString.Lazy qualified as LBS
+import Data.Foldable (toList)
 import Data.Text (Text)
 import Data.Text qualified as Text
 import System.Directory qualified as Dir
 import System.FilePath (takeDirectory, (</>))
 import System.IO
 import Test.Heni.Case (mkRelativeTarget, mkSelectedCases)
+import Test.Heni.Command (ProcessOutcome (..))
 import Test.Heni.Expectation (StageEvidence (..))
 import Test.Heni.Internal.Codec
 import Test.Heni.Internal.Files (WorkspaceError, checkedPath)
@@ -88,13 +91,38 @@ readReport path = handleErrors $ do
 
 validateArtifacts :: FilePath -> StoredReport -> IO ()
 validateArtifacts root StoredReport {metadata, result = RunResult {results}} = do
+  -- Reuse points at the original producer's actual baseline, never a synthetic
+  -- fresh attempt. Secrets used in equality checks deliberately are not stored.
+  case metadata of
+    Object o -> case KM.lookup "caseDetails" o of
+      Just (Object cases) -> forM_ (KM.toList cases) $ \(current, details) -> case details of
+        Object fields -> case KM.lookup "baseline-reuse" fields of
+          Just (Object reuse) | KM.lookup "reused" reuse == Just (Bool True) -> do
+            owner <- case KM.lookup "ownerCase" reuse of Just (String name) -> pure (Key.fromText name); _ -> throwIO (ReportError "reused baseline has no owner")
+            unless (owner /= current) (throwIO (ReportError "reused baseline points to itself"))
+            observed <- case KM.lookup owner cases of
+              Just (Object ownerDetails) -> case KM.lookup "baseline-build" ownerDetails of
+                Just (Object observation) -> case KM.lookup "stage" observation of Just stage -> pure stage; _ -> throwIO (ReportError "baseline owner has no build evidence")
+                _ -> throwIO (ReportError "baseline owner has no original baseline")
+              _ -> throwIO (ReportError "unknown baseline owner")
+            StageEvidence {outcome} <- either (throwIO . ReportError . Text.pack) pure (parseEither parseStage observed)
+            unless (outcome == Exited 0) (throwIO (ReportError "reused baseline owner did not build successfully"))
+          _ -> pure ()
+        _ -> pure ()
+      _ -> pure ()
+    _ -> pure ()
   let caseStages = concat [stages | CaseResult {evidence = CaseEvidence {stages}} <- results]
       metadataStages = case metadata of
         Object o -> case KM.lookup "caseDetails" o of
           Just (Object cases) -> [value | Object details <- KM.elems cases, Object observation <- KM.elems details, Just value <- [KM.lookup "stage" observation]]
           _ -> []
         _ -> []
-  additionalStages <- mapM (either (throwIO . ReportError . Text.pack) pure . parseEither parseStage) metadataStages
+      resourceStages = case metadata of
+        Object o -> case KM.lookup "resources" o of
+          Just (Array events) -> [stage | Object event <- toList events, Just stage <- [KM.lookup "stage" event]]
+          _ -> []
+        _ -> []
+  additionalStages <- mapM (either (throwIO . ReportError . Text.pack) pure . parseEither parseStage) (metadataStages ++ resourceStages)
   forM_ (caseStages ++ additionalStages) $ \StageEvidence {logPaths} -> forM_ logPaths $ \relative -> do
     target <- either (throwIO . ReportError . Text.pack . show) pure (mkRelativeTarget relative)
     path <- checkedPath root target

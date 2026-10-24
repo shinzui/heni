@@ -5,6 +5,7 @@ module Test.Heni.Runner
     campaignCases,
     campaignCommands,
     RunOptions (..),
+    ReusePolicy (..),
     defaultRunOptions,
     RunEvent (..),
     ConfigurationFailure (..),
@@ -12,13 +13,16 @@ module Test.Heni.Runner
   )
 where
 
+import Control.Concurrent.MVar
 import Control.Exception hiding (handle)
 import Control.Monad (forM_, unless, when)
 import Data.Aeson
 import Data.Aeson.Key qualified as Key
 import Data.Aeson.KeyMap qualified as KM
 import Data.ByteString qualified as BS
+import Data.Foldable (toList)
 import Data.IORef
+import Data.List (sort)
 import Data.Map.Strict qualified as Map
 import Data.Set qualified as Set
 import Data.Text (Text)
@@ -26,20 +30,25 @@ import Data.Text qualified as Text
 import Data.Text.Encoding qualified as Text
 import Data.Version (showVersion)
 import System.Directory qualified as Dir
+import System.Environment (getEnvironment)
 import System.FilePath (takeDirectory)
 import System.Info qualified as Platform
 import Test.Heni.Adapter qualified as Adapter
+import Test.Heni.BuildReuse qualified as Build
 import Test.Heni.Case
 import Test.Heni.Command
 import Test.Heni.Crash qualified as Crash
 import Test.Heni.Edit
 import Test.Heni.Expectation
+import Test.Heni.Internal.Baseline qualified as Baseline
 import Test.Heni.Internal.Codec
 import Test.Heni.Internal.Files (digest, withFinalizer)
 import Test.Heni.Process
 import Test.Heni.Replay qualified as Replay
 import Test.Heni.Report
+import Test.Heni.Resource qualified as Resource
 import Test.Heni.Result
+import Test.Heni.Scheduler qualified as Scheduler
 import Test.Heni.Workspace
 import Prelude hiding (sequence)
 
@@ -76,6 +85,18 @@ campaignCommands (Campaign commands _) = commands
 data RunEvent = CaseStarted !CaseId | StageFinished !CaseId !Text !StageEvidence | CaseFinished !CaseResult
   deriving stock (Eq, Show)
 
+-- | Fresh is the reference mode. Opt-in sharing requires a nonsecret toolchain
+-- contract; structured suites also require their exact producer identity. The
+-- consumer asserts that external inputs and test behavior do not depend on
+-- per-attempt identity fields. Unknown external state disables sharing.
+data ReusePolicy = Fresh | ReuseBaselines !Text !(Maybe Text)
+  deriving stock (Eq, Show)
+
+data BaselineKey = BaselineKey !Text !Command !(Maybe Command) !(Maybe Text) !Expectation !EvidenceMode ![(String, String)] ![(Text, Resource.ResourceBinding)] !ReusePolicy
+  deriving stock (Eq)
+
+data BaselineEntry = BaselineEntry !CaseId !(Maybe Text)
+
 -- | Explicit source/output roots and optional selected ledger. No mandatory output.
 data RunOptions = RunOptions
   { sourceRoot :: !FilePath,
@@ -83,12 +104,17 @@ data RunOptions = RunOptions
     sourcePolicy :: !SnapshotPolicy,
     selectedCases :: !(Maybe SelectedCases),
     progress :: !(RunEvent -> IO ()),
-    workspaceCleanup :: !(Workspace -> IO ())
+    workspaceCleanup :: !(Workspace -> IO ()),
+    workers :: !Int,
+    resources :: ![Resource.ResourceProvider],
+    resourceClaims :: !(Map.Map CaseId [Text]),
+    reusePolicy :: !ReusePolicy,
+    buildReuse :: !(Maybe Build.BuildReuse)
   }
 
 -- | Fresh serial workspaces, whole working-tree inputs, all cases, silent observer.
 defaultRunOptions :: FilePath -> FilePath -> RunOptions
-defaultRunOptions source output = RunOptions source output defaultSnapshotPolicy Nothing (const (pure ())) (const (pure ()))
+defaultRunOptions source output = RunOptions source output defaultSnapshotPolicy Nothing (const (pure ())) (const (pure ())) 1 [] Map.empty Fresh Nothing
 
 -- | Invalid configurations are separate from executed mutation results.
 newtype ConfigurationFailure = ConfigurationFailure ConfigError
@@ -98,7 +124,20 @@ newtype ConfigurationFailure = ConfigurationFailure ConfigError
 -- | Execute selected cases. Runtime failures return structured results. On
 -- asynchronous cancellation, finalize the partial report and rethrow the cause.
 runCampaign :: RunOptions -> Campaign -> IO RunResult
-runCampaign RunOptions {sourceRoot, outputDirectory, sourcePolicy, selectedCases, progress, workspaceCleanup} campaign@(Campaign commands definitions) = mask $ \restore -> do
+runCampaign RunOptions {sourceRoot, outputDirectory, sourcePolicy, selectedCases, progress, workspaceCleanup, workers, resources, resourceClaims, reusePolicy, buildReuse} campaign@(Campaign commands definitions) = mask $ \restore -> do
+  either (throwIO . ConfigurationFailure) pure (Resource.validateResources resources)
+  unless (workers > 0 && workers <= 256) (throwIO (ConfigurationFailure (ConfigError "workers" "must be between 1 and 256")))
+  forM_ (Map.toList resourceClaims) $ \(cid, claims) -> do
+    unless
+      (cid `elem` [caseId | (CaseDefinition {caseId}, _) <- definitions] && all (`elem` map Resource.resourceName resources) claims && length claims == Set.size (Set.fromList claims))
+      (throwIO (ConfigurationFailure (ConfigError "resources.claims" "unknown case/resource or duplicate claim")))
+  forM_ buildReuse (either (throwIO . ConfigurationFailure) pure . Build.validateBuildReuse)
+  case reusePolicy of
+    ReuseBaselines contract adapter ->
+      unless
+        (not (Text.null (Text.strip contract)) && maybe True (not . Text.null . Text.strip) adapter)
+        (throwIO (ConfigurationFailure (ConfigError "reuse" "toolchain/known adapter contracts must be nonempty")))
+    Fresh -> pure ()
   selected <- either (throwIO . ConfigurationFailure) pure $ maybe (mkSelectedCases [i | (CaseDefinition {caseId = i}, _) <- definitions]) Right selectedCases
   let ids = selectedCaseIds selected
   unless
@@ -111,121 +150,190 @@ runCampaign RunOptions {sourceRoot, outputDirectory, sourcePolicy, selectedCases
   -- Executable availability is validated for selected commands only.
   let chosen = [(d, h) | i <- ids, (d@CaseDefinition {caseId = j}, h) <- definitions, i == j]
       commandIds = Set.fromList [c | (CaseDefinition {build, test}, _) <- chosen, c <- build : maybe [] pure test]
+  let activeNames = concat [Map.findWithDefault [] cid resourceClaims | cid <- ids]
+      activeResources = filter ((`elem` activeNames) . Resource.resourceName) resources
+      effectiveWorkers = minimum (workers : [Resource.resourceCapacity p | p <- activeResources, Resource.resourceScope p == Resource.WorkerScope])
   forM_ (Set.toList commandIds) $ \key -> validateExecutable (commands Map.! key) >>= either (throwIO . ConfigurationFailure) pure
+  forM_ (concatMap Resource.resourceCommands activeResources) $ \command -> validateExecutable command >>= either (throwIO . ConfigurationFailure) pure
   resultsRef <- newIORef Map.empty
   failuresRef <- newIORef []
-  contextRef <- newIORef (initialMetadata campaign chosen)
+  contextRef <-
+    newIORef
+      ( case initialMetadata campaign chosen of
+          Object o ->
+            Object
+              ( KM.insert
+                  "execution"
+                  ( object
+                      [ "workers" .= effectiveWorkers,
+                        "requestedWorkers" .= workers,
+                        "baselineReuse" .= reusePolicyJSON reusePolicy,
+                        "buildReuseContract" .= fmap (\Build.BuildReuse {contractIdentity} -> contractIdentity) buildReuse,
+                        "resourceDefinitions" .= [object ["name" .= Resource.resourceName p, "scope" .= resourceScopeText (Resource.resourceScope p), "capacity" .= Resource.resourceCapacity p, "commands" .= map redactedCommand (Resource.resourceCommands p)] | p <- resources],
+                        "resourceClaims" .= object [Key.fromText (caseIdText cid) .= claims | (cid, claims) <- Map.toAscList resourceClaims]
+                      ]
+                  )
+                  o
+              )
+          other -> other
+      )
   sequenceRef <- newIORef 0
-  baselineRef <- newIORef BaselineUnavailable
-  mutationRef <- newIORef Unchanged
-  stagesRef <- newIORef []
-  errorsRef <- newIORef []
-  cleanupRef <- newIORef []
   runIdentity <- newIORef ""
-  producerIdentity <- newIORef Nothing
+  journalLock <- newMVar ()
+  observerLock <- newMVar ()
+  workerBindings <- newMVar Map.empty
+  baselineCache <- Baseline.newBaselineCache
   let summary = do
         results <- Map.elems <$> readIORef resultsRef
         failures <- readIORef failuresRef
         either (throwIO . ConfigurationFailure) pure (summarizeRun selected results failures)
+      notifyProgress event = withMVar observerLock (\_ -> progress event)
       stored = StoredReport <$> readIORef contextRef <*> summary
-      journal event = do
+      journal event = withMVar journalLock $ \_ -> do
         value <- stored
         sequence <- readIORef sequenceRef
         appendJournal outputDirectory sequence event value
         writeIORef sequenceRef (sequence + 1)
-      currentEvidence stopped = CaseEvidence <$> readIORef baselineRef <*> readIORef mutationRef <*> readIORef stagesRef <*> readIORef errorsRef <*> readIORef cleanupRef <*> pure stopped
-      cleanup workspace =
-        workspaceCleanup workspace `catch` \(e :: SomeException) -> do
-          modifyIORef' cleanupRef (++ [Text.pack (displayException e)])
-          throwIO e
-      updatePartial definition@CaseDefinition {caseId} = do
-        observations <- currentEvidence (Just "case execution is incomplete")
-        modifyIORef' resultsRef (Map.insert caseId (classifyCase definition observations))
-      addCaseDetails caseId key value = modifyIORef' contextRef $ \context -> case context of
+      addCaseDetails caseId key value = atomicModify_ contextRef $ \context -> case context of
         Object metadata -> Object (mapToKeyMap metadata caseId key value)
         _ -> context
-      runStage definition@CaseDefinition {caseId, expectation, evidenceMode} hooks role workspace stage command = do
-        identity <- readIORef runIdentity
-        attempt <-
-          if stage `elem` [Test, Replay] && (evidenceMode == StructuredTestsV1 || isCrash expectation)
-            then Just <$> Adapter.newEvidenceAttempt outputDirectory identity caseId stage role
-            else pure Nothing
-        let prefix = Text.unpack (caseIdText caseId <> "-" <> role <> "-" <> stageName stage)
-            wanted = witnessesFor expectation stage
-            effectiveCommand = withEnvironment (maybe [] Adapter.attemptEnvironment attempt) (withSelector definition command)
-            options = case defaultProcessOptions outputDirectory prefix of
-              ProcessOptions d p g _ _ observer -> ProcessOptions d p g wanted reservedEnvironment observer
-            record processReport@ProcessReport {evidence, errors, logs, preservedWitnesses} = do
-              normalized <- normalizeAttempt producerIdentity definition attempt evidence
-              enhanced <- if evidenceMode == StructuredTestsV1 then observeStructured hooks normalized else enhance hooks normalized
-              when (role == "candidate") $ do
-                modifyIORef' stagesRef (++ [enhanced])
-              let invalidEvidence = either pure (const []) (validateStageEvidence enhanced)
-              modifyIORef' errorsRef (++ (errors ++ invalidEvidence))
-              addCaseDetails
-                caseId
-                (role <> "-" <> stageName stage)
-                ( object
-                    [ "stage" .= stageJSON enhanced,
-                      "logs" .= map logJSON logs,
-                      "preservedWitnesses" .= preservedWitnesses,
-                      "errors" .= errors,
-                      "command" .= redactedCommand effectiveCommand,
-                      "attempt" .= maybe Null Adapter.attemptIdentityJSON attempt
-                    ]
-                )
-              updatePartial definition
-              journal "stage"
-              progress (StageFinished caseId role enhanced)
-              pure (processReport, enhanced)
-        process <- try (runCommand options workspace stage effectiveCommand)
-        case process of
-          Left ProcessAborted {report, cause} -> record report >> throwIO cause
-          Right report -> record report
-      runOne snapshot (definition@CaseDefinition {caseId, build, test, expectation}, hooks) = do
-        writeIORef baselineRef BaselineUnavailable
-        writeIORef mutationRef Unchanged
-        writeIORef stagesRef []
-        writeIORef errorsRef []
-        writeIORef cleanupRef []
-        writeIORef producerIdentity Nothing
-        updatePartial definition
+      runOne snapshot leases retainedWorker (definition@CaseDefinition {caseId, build, test, expectation, evidenceMode}, hooks) = do
+        baselineRef <- newIORef BaselineUnavailable
+        mutationRef <- newIORef Unchanged
+        stagesRef <- newIORef []
+        errorsRef <- newIORef []
+        cleanupRef <- newIORef []
+        producerIdentity <- newIORef Nothing
+        environmentRef <- newIORef []
+        actualBaselineRef <- newIORef Nothing
+        let currentEvidence stopped = CaseEvidence <$> readIORef baselineRef <*> readIORef mutationRef <*> readIORef stagesRef <*> readIORef errorsRef <*> readIORef cleanupRef <*> pure stopped
+            cleanup workspace =
+              workspaceCleanup workspace `catch` \(e :: SomeException) -> do
+                modifyIORef' cleanupRef (++ [Text.pack (displayException e)])
+                throwIO e
+            updatePartial = do
+              observations <- currentEvidence (Just "case execution is incomplete")
+              atomicModify_ resultsRef (Map.insert caseId (classifyCase definition observations))
+            runStage role workspace stage command = do
+              identity <- readIORef runIdentity
+              attempt <-
+                if stage `elem` [Test, Replay] && (evidenceMode == StructuredTestsV1 || isCrash expectation)
+                  then Just <$> Adapter.newEvidenceAttempt outputDirectory identity caseId stage role
+                  else pure Nothing
+              additions <- readIORef environmentRef
+              let prefix = Text.unpack (caseIdText caseId <> "-" <> role <> "-" <> stageName stage)
+                  wanted = witnessesFor expectation stage
+                  effectiveCommand = withEnvironment (additions ++ maybe [] Adapter.attemptEnvironment attempt) (withSelector definition command)
+                  options = case defaultProcessOptions outputDirectory prefix of
+                    ProcessOptions d p g _ _ observer -> ProcessOptions d p g wanted reservedEnvironment observer
+                  record processReport@ProcessReport {evidence, errors, logs, preservedWitnesses} = do
+                    normalized <- normalizeAttempt producerIdentity definition attempt evidence
+                    enhanced <- if evidenceMode == StructuredTestsV1 then observeStructured hooks normalized else enhance hooks normalized
+                    when (role == "candidate") $ do
+                      modifyIORef' stagesRef (++ [enhanced])
+                    let invalidEvidence = either pure (const []) (validateStageEvidence enhanced)
+                    modifyIORef' errorsRef (++ (errors ++ invalidEvidence))
+                    addCaseDetails
+                      caseId
+                      (role <> "-" <> stageName stage)
+                      ( object
+                          [ "stage" .= stageJSON enhanced,
+                            "logs" .= map logJSON logs,
+                            "preservedWitnesses" .= preservedWitnesses,
+                            "errors" .= errors,
+                            "command" .= redactedCommand effectiveCommand,
+                            "attempt" .= maybe Null Adapter.attemptIdentityJSON attempt
+                          ]
+                      )
+                    updatePartial
+                    journal "stage"
+                    notifyProgress (StageFinished caseId role enhanced)
+                    pure (processReport, enhanced)
+              process <- try (runCommand options workspace stage effectiveCommand)
+              case process of
+                Left ProcessAborted {report, cause} -> record report >> throwIO cause
+                Right report -> record report
+        updatePartial
         attempted <- try $ restore $ do
-          progress (CaseStarted caseId)
-          baselinePassed <- withWorkspace snapshot $ \workspace ->
-            ( do
-                (buildReport, buildEvidence) <- runStage definition hooks "baseline" workspace Build (commands Map.! build)
-                if not (stagePassed buildReport buildEvidence)
-                  then pure False
-                  else case test of
-                    Nothing -> pure True
-                    Just testId | needsTest expectation -> do
-                      (testReport, testEvidence) <- runStage definition hooks "baseline" workspace Test (commands Map.! testId)
-                      pure (stagePassed testReport testEvidence && baselineSelection definition testEvidence)
-                    _ -> pure True
-            )
-              `withFinalizer` cleanup workspace
+          notifyProgress (CaseStarted caseId)
+          prepared <- mapM (\(name, lease) -> (name,) <$> Resource.prepareResource lease) leases
+          additions <- either (throwIO . ConfigurationFailure) pure (Resource.bindingEnvironment prepared)
+          writeIORef environmentRef additions
+          addCaseDetails caseId "baseline-resources" (toJSON [resourceBindingJSON name binding | (name, binding) <- prepared])
+          let executeBaseline =
+                withWorkspace snapshot $ \workspace ->
+                  ( do
+                      (buildReport, buildEvidence) <- runStage "baseline" workspace Build (commands Map.! build)
+                      if not (stagePassed buildReport buildEvidence)
+                        then pure False
+                        else case test of
+                          Nothing -> pure True
+                          Just testId | needsTest expectation -> do
+                            (testReport, testEvidence) <- runStage "baseline" workspace Test (commands Map.! testId)
+                            pure (stagePassed testReport testEvidence && baselineSelection definition testEvidence)
+                          _ -> pure True
+                  )
+                    `withFinalizer` cleanup workspace
+          inherited <- sort <$> getEnvironment
+          let CaseDefinition {selector} = definition
+              baselineKey = BaselineKey (snapshotIdentity snapshot) (commands Map.! build) (if needsTest expectation then (commands Map.!) <$> test else Nothing) selector expectation evidenceMode inherited prepared reusePolicy
+              hooksAllow = case hooks of CaseHooks {customEdits, customEvidence} -> null customEdits && case customEvidence of Nothing -> True; Just _ -> False
+              epochsKnown = all (\(_, Resource.ResourceBinding {epoch}) -> epoch /= Nothing) prepared
+              adapterKnown = case (evidenceMode, reusePolicy) of (StructuredTestsV1, ReuseBaselines _ (Just _)) -> True; (StructuredTestsV1, _) -> False; _ -> True
+              eligible = reusePolicy /= Fresh && hooksAllow && epochsKnown && adapterKnown
+              compute = do
+                passed <- executeBaseline
+                writeIORef actualBaselineRef (Just passed)
+                producer <- readIORef producerIdentity
+                let producerAgrees = case (evidenceMode, reusePolicy) of (StructuredTestsV1, ReuseBaselines _ expected) -> expected == producer; _ -> True
+                pure (if passed && producerAgrees then Just (BaselineEntry caseId producer) else Nothing)
+          (reused, entry) <- if eligible then Baseline.shareBaseline baselineCache baselineKey compute else (False,) <$> compute
+          actual <- readIORef actualBaselineRef
+          let baselinePassed = case entry of Just _ -> True; Nothing -> actual == Just True
+              reason
+                | reusePolicy == Fresh = "fresh reference mode"
+                | not hooksAllow = "custom hooks have no portable baseline identity"
+                | not epochsKnown = "resource epoch is unknown"
+                | not adapterKnown = "structured producer identity is undeclared"
+                | reused = "matching campaign-local baseline contract"
+                | otherwise = "executed fresh baseline; only passing matching producer facts are shareable"
+          forM_ entry $ \(BaselineEntry _ producer) -> writeIORef producerIdentity producer
+          addCaseDetails caseId "baseline-reuse" (object ["reused" .= reused, "ownerCase" .= fmap (\(BaselineEntry owner _) -> caseIdText owner) entry, "reason" .= String reason, "policy" .= reusePolicyJSON reusePolicy, "environmentComparedInMemory" .= True])
           writeIORef baselineRef (if baselinePassed then BaselinePassed else BaselineFailed "unchanged build/test or required selection failed")
           when baselinePassed $ do
-            applied <- withEditedWorkspace (patchRunner caseId) hooks snapshot definition $ \workspace editEvidence ->
-              ( do
-                  writeIORef mutationRef (if expectation == Control then Unchanged else Changed)
-                  addCaseDetails caseId "changes" (changesJSON editEvidence)
-                  (buildReport, buildEvidence) <- runStage definition hooks "candidate" workspace Build (commands Map.! build)
-                  when (stagePassed buildReport buildEvidence && needsTest expectation) $ forM_ test $ \testId -> do
-                    (_, testEvidence) <- runStage definition hooks "candidate" workspace Test (commands Map.! testId)
-                    case (expectation, testEvidence, hooks) of
-                      (NamedTests expected RequireReplay, StageEvidence {outcome = Exited 1, replay = Just token, selection = SelectionEvidence {failedIds}}, CaseHooks {replayBuilder})
-                        | expected == failedIds && validateStageEvidence testEvidence == Right () -> do
-                            built <- maybe (pure (Right (Replay.replayCommand token (commands Map.! testId)))) (\builder -> builder token (commands Map.! testId)) replayBuilder
-                            case built of
-                              Left why -> addCaseDetails caseId "replayRejected" (String why)
-                              Right replayCommand -> do
-                                _ <- runStage definition hooks "candidate" workspace Replay replayCommand
-                                pure ()
-                      _ -> pure ()
-              )
-                `withFinalizer` cleanup workspace
+            let withCandidate staged action = case retainedWorker of
+                  Nothing -> action staged Nothing
+                  Just worker -> do
+                    inheritedNow <- sort <$> getEnvironment
+                    Build.withBuildCandidate worker (commands Map.! build, additions ++ inheritedNow) staged (\workspace inputId -> action workspace (Just inputId))
+            applied <- withEditedWorkspace (patchRunner caseId) hooks snapshot definition $ \staged editEvidence ->
+              withCandidate staged $ \workspace inputId ->
+                ( do
+                    candidateBindings <- mapM (\(name, lease) -> (name,) <$> Resource.prepareResource lease) leases
+                    unless (candidateBindings == prepared) (ioError (userError "resource identity/epoch/environment changed between baseline and candidate"))
+                    candidateEnvironment <- either (throwIO . ConfigurationFailure) pure (Resource.bindingEnvironment candidateBindings)
+                    let buildEnvironment = maybe [] (\key -> [("HENI_BUILD_INPUT_ID", Text.unpack key)]) inputId
+                    writeIORef environmentRef (buildEnvironment ++ candidateEnvironment)
+                    addCaseDetails caseId "build-reuse" (object ["enabled" .= (inputId /= Nothing), "inputIdentity" .= inputId, "contract" .= fmap (\Build.BuildReuse {contractIdentity} -> contractIdentity) buildReuse])
+                    addCaseDetails caseId "candidate-resources" (toJSON [resourceBindingJSON name binding | (name, binding) <- candidateBindings])
+                    writeIORef mutationRef (if expectation == Control then Unchanged else Changed)
+                    addCaseDetails caseId "changes" (changesJSON editEvidence)
+                    (buildReport, buildEvidence) <- runStage "candidate" workspace Build (commands Map.! build)
+                    when (case buildEvidence of StageEvidence {outcome = Exited _} -> True; _ -> False) $ forM_ ((,) <$> retainedWorker <*> inputId) (\(worker, key) -> Build.confirmBuild worker key)
+                    when (stagePassed buildReport buildEvidence && needsTest expectation) $ forM_ test $ \testId -> do
+                      (_, testEvidence) <- runStage "candidate" workspace Test (commands Map.! testId)
+                      case (expectation, testEvidence, hooks) of
+                        (NamedTests expected RequireReplay, StageEvidence {outcome = Exited 1, replay = Just token, selection = SelectionEvidence {failedIds}}, CaseHooks {replayBuilder})
+                          | expected == failedIds && validateStageEvidence testEvidence == Right () -> do
+                              built <- maybe (pure (Right (Replay.replayCommand token (commands Map.! testId)))) (\builder -> builder token (commands Map.! testId)) replayBuilder
+                              case built of
+                                Left why -> addCaseDetails caseId "replayRejected" (String why)
+                                Right replayCommand -> do
+                                  _ <- runStage "candidate" workspace Replay replayCommand
+                                  pure ()
+                        _ -> pure ()
+                )
+                  `withFinalizer` cleanup workspace
             case applied of
               Left (InvalidEdit why) -> writeIORef mutationRef (EditRejected why)
               Left (EditInfrastructure why) -> modifyIORef' errorsRef (++ [why])
@@ -237,15 +345,18 @@ runCampaign RunOptions {sourceRoot, outputDirectory, sourcePolicy, selectedCases
             case fromException original :: Maybe SomeAsyncException of
               Just _ -> do
                 observations <- currentEvidence (Just "execution interrupted")
-                modifyIORef' resultsRef (Map.insert caseId (classifyCase definition observations))
+                atomicModify_ resultsRef (Map.insert caseId (classifyCase definition observations))
                 throwIO original
               Nothing -> modifyIORef' errorsRef (++ [Text.pack (displayException e)])
           Right () -> pure ()
         observations <- currentEvidence Nothing
-        let result = classifyCase definition observations
-        modifyIORef' resultsRef (Map.insert caseId result)
+        let result@CaseResult {verdict} = classifyCase definition observations
+        when (verdict == InfrastructureError) $ do
+          Baseline.clearBaselineCache baselineCache
+          forM_ retainedWorker Build.retireBuildWorker
+        atomicModify_ resultsRef (Map.insert caseId result)
         journal "case"
-        progress (CaseFinished result)
+        notifyProgress (CaseFinished result)
       patchRunner caseId workspace args = do
         -- Patch check/apply share the exact supervisor used by build/test.
         let prefix = Text.unpack (caseIdText caseId <> if "--check" `elem` args then "-patch-check" else "-patch-apply")
@@ -267,24 +378,60 @@ runCampaign RunOptions {sourceRoot, outputDirectory, sourcePolicy, selectedCases
     Dir.createDirectory outputDirectory
     identity <- Adapter.newRunIdentity outputDirectory
     writeIORef runIdentity identity
-    modifyIORef' contextRef (\case Object o -> Object (KM.insert "runId" (String identity) o); other -> other)
+    atomicModify_ contextRef (\case Object o -> Object (KM.insert "runId" (String identity) o); other -> other)
     journal "selected"
     withSnapshot sourceRoot sourcePolicy $ \snapshot -> do
-      modifyIORef' contextRef (addSnapshot snapshot)
+      atomicModify_ contextRef (addSnapshot snapshot)
       journal "snapshot"
-      forM_ chosen (runOne snapshot)
+      let observeResource event = do
+            atomicModify_ contextRef (appendResourceEvent event)
+            journal "resource"
+          context ident = Resource.ResourceContext ident snapshot outputDirectory observeResource
+          scope target = filter ((== target) . Resource.resourceScope) activeResources
+          withWorker number action = Resource.withResources (scope Resource.WorkerScope) (context ("worker-" <> Text.pack (show number))) $ \leases ->
+            let run retained =
+                  (modifyMVar_ workerBindings (pure . Map.insert number (leases, retained)) >> action)
+                    `withFinalizer` modifyMVar_ workerBindings (pure . Map.delete number)
+             in maybe (run Nothing) (\provider -> Build.withBuildWorker snapshot provider (run . Just)) buildReuse
+      Resource.withResources (scope Resource.CampaignScope) (context "campaign") $ \campaignLeases ->
+        Scheduler.runScheduled
+          effectiveWorkers
+          (Map.fromList [(Resource.resourceName p, Resource.resourceCapacity p) | p <- activeResources])
+          [(item, Map.findWithDefault [] cid resourceClaims) | item@(CaseDefinition {caseId = cid}, _) <- chosen]
+          withWorker
+          $ \number item@(definition@CaseDefinition {caseId}, _) -> do
+            (workerLeases, retainedWorker) <- Map.findWithDefault ([], Nothing) number <$> readMVar workerBindings
+            let claims = Map.findWithDefault [] caseId resourceClaims
+                persistent = filter ((`elem` claims) . fst) (campaignLeases ++ workerLeases)
+                localProviders = filter ((`elem` claims) . Resource.resourceName) (scope Resource.CaseScope)
+            attempt <- try (Resource.withResources localProviders (context ("case-" <> caseIdText caseId)) (\leases -> runOne snapshot (persistent ++ leases) retainedWorker item))
+            case attempt of
+              Right () -> pure ()
+              Left (e :: SomeException) -> case fromException (originalException e) :: Maybe SomeAsyncException of
+                Just _ -> throwIO (originalException e)
+                Nothing -> do
+                  Baseline.clearBaselineCache baselineCache
+                  forM_ retainedWorker Build.retireBuildWorker
+                  prior <- Map.lookup caseId <$> readIORef resultsRef
+                  let old = case prior of Just CaseResult {evidence} -> evidence; Nothing -> CaseEvidence BaselineUnavailable Unchanged [] [] [] Nothing
+                      CaseEvidence b m stages errors clean stop = old
+                      failed = classifyCase definition (CaseEvidence b m stages errors (clean ++ [Text.pack (displayException e)]) stop)
+                  atomicModify_ resultsRef (Map.insert caseId failed)
+                  journal "resource-failure"
   case attempted of
-    Left (e :: SomeException) -> case fromException e :: Maybe SomeAsyncException of
-      Just _ -> modifyIORef' failuresRef (++ [Interrupted (Text.pack (displayException e))])
-      Nothing -> modifyIORef' failuresRef (++ [RunInfrastructure (Text.pack (displayException e))])
+    Left (e :: SomeException) -> do
+      atomicModify_ failuresRef (++ map RunInfrastructure (finalizationErrors e))
+      case fromException (originalException e) :: Maybe SomeAsyncException of
+        Just _ -> atomicModify_ failuresRef (++ [Interrupted (Text.pack (displayException (originalException e)))])
+        Nothing -> atomicModify_ failuresRef (++ [RunInfrastructure (Text.pack (displayException e))])
     Right () -> pure ()
   finalWrite <- try (journal "finalized" >> stored >>= writeReport outputDirectory) :: IO (Either SomeException ())
   case finalWrite of
-    Left e -> modifyIORef' failuresRef (++ [RunInfrastructure ("report finalization failed: " <> Text.pack (displayException e))])
+    Left e -> atomicModify_ failuresRef (++ [RunInfrastructure ("report finalization failed: " <> Text.pack (displayException e))])
     Right () -> pure ()
   final <- summary
   case attempted of
-    Left e | Just (_ :: SomeAsyncException) <- fromException e -> throwIO e
+    Left e | Just (_ :: SomeAsyncException) <- fromException (originalException e) -> throwIO (originalException e)
     _ -> case finalWrite of
       Left e | Just (_ :: SomeAsyncException) <- fromException e -> throwIO e
       _ -> pure final
@@ -325,7 +472,7 @@ isCrash CrashProbe {} = True
 isCrash _ = False
 
 reservedEnvironment :: [String]
-reservedEnvironment = ["HENI_EVIDENCE_FILE", "HENI_RUN_ID", "HENI_CASE_ID", "HENI_STAGE", "HENI_ROLE", "HENI_ATTEMPT", "HENI_SELECTOR", "HENI_REPLAY_TOKEN", "HENI_REPLAY_GENERATOR"]
+reservedEnvironment = ["HENI_EVIDENCE_FILE", "HENI_RUN_ID", "HENI_CASE_ID", "HENI_STAGE", "HENI_ROLE", "HENI_ATTEMPT", "HENI_SELECTOR", "HENI_REPLAY_TOKEN", "HENI_REPLAY_GENERATOR", "HENI_BUILD_INPUT_ID"]
 
 withEnvironment :: [(String, String)] -> Command -> Command
 withEnvironment additions (Command exe args sensitive working env budget output) =
@@ -426,9 +573,41 @@ withSelector CaseDefinition {selector} (Command executable arguments sensitive w
 originalException :: SomeException -> SomeException
 originalException e = case fromException e of
   Just (WorkspaceFinalizationError (Just primary) _) -> originalException primary
-  _ -> e
+  _ -> case fromException e of
+    Just (Resource.ResourceError _ _ cause) -> originalException cause
+    _ -> e
 
 finalizationErrors :: SomeException -> [Text]
 finalizationErrors e = case fromException e of
   Just (WorkspaceFinalizationError primary secondary) -> Text.pack (displayException secondary) : maybe [] finalizationErrors primary
-  _ -> []
+  _ -> case fromException e of
+    Just (Resource.ResourceError _ _ cause) -> finalizationErrors cause
+    _ -> []
+
+-- Atomic shared state; case-local evidence is private to one scheduled owner.
+atomicModify_ :: IORef a -> (a -> a) -> IO ()
+atomicModify_ ref update = atomicModifyIORef' ref (\value -> (update value, ()))
+
+resourceBindingJSON :: Text -> Resource.ResourceBinding -> Value
+resourceBindingJSON name Resource.ResourceBinding {identity, version, epoch, environment} =
+  object
+    ["name" .= name, "identity" .= identity, "version" .= version, "epoch" .= epoch, "environmentKeys" .= map fst environment, "environmentRedacted" .= True]
+
+appendResourceEvent :: Resource.ResourceEvent -> Value -> Value
+appendResourceEvent event (Object o) =
+  let old = case KM.lookup "resources" o of Just (Array a) -> toList a; _ -> []
+      value = case event of
+        Resource.ResourceEvent name instanceId phase binding -> object ["instance" .= instanceId, "phase" .= resourcePhaseText phase, "binding" .= resourceBindingJSON name binding]
+        Resource.ResourceCommandFinished name instanceId phase ProcessReport {evidence, logs, errors} -> object ["resource" .= name, "instance" .= instanceId, "phase" .= resourcePhaseText phase, "stage" .= stageJSON evidence, "logs" .= map logJSON logs, "errors" .= errors]
+   in Object (KM.insert "resources" (toJSON (old ++ [value])) o)
+appendResourceEvent _ other = other
+
+reusePolicyJSON :: ReusePolicy -> Value
+reusePolicyJSON Fresh = object ["mode" .= String "fresh"]
+reusePolicyJSON (ReuseBaselines toolchain adapter) = object ["mode" .= String "baselines", "toolchain" .= toolchain, "adapter" .= adapter]
+
+resourceScopeText :: Resource.ResourceScope -> Text
+resourceScopeText = \case Resource.CampaignScope -> "campaign"; Resource.WorkerScope -> "worker"; Resource.CaseScope -> "case"
+
+resourcePhaseText :: Resource.ResourcePhase -> Text
+resourcePhaseText = \case Resource.AcquireResource -> "acquire"; Resource.ResetResource -> "reset"; Resource.ReleaseResource -> "release"

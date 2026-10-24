@@ -4,7 +4,8 @@ import Control.Concurrent (threadDelay)
 import Control.Monad (forever, replicateM_)
 import Data.ByteString qualified as BS
 import Data.List (isInfixOf)
-import System.Environment (getArgs, getExecutablePath)
+import System.Directory qualified as Dir
+import System.Environment (getArgs, getExecutablePath, lookupEnv)
 import System.Exit (ExitCode (..), exitWith)
 import System.IO
 import System.IO.Error (catchIOError)
@@ -47,6 +48,23 @@ main = do
       BS.hPut stdout "witness"
       exitWith (ExitFailure 1)
     ["invalid-utf8"] -> BS.hPut stdout (BS.pack [255]) >> exitWith (ExitFailure 1)
+    ["incremental-build", mode] -> do
+      content <- readFile "input"
+      key <- maybe "fresh" id <$> lookupEnv "HENI_BUILD_INPUT_ID"
+      Dir.createDirectoryIfMissing True "dist-newstyle"
+      exists <- Dir.doesFileExist "dist-newstyle/observed-key"
+      old <- if exists then readFile "dist-newstyle/observed-key" else pure "absent"
+      length old `seq` pure ()
+      if (mode == "unsafe" && exists) || old == key
+        then pure ()
+        else do
+          writeFile "dist-newstyle/compiled" content
+          writeFile "dist-newstyle/observed-key" key
+      if mode == "generated" then writeFile "unexpected-generated" "unexpected" else pure ()
+      if mode == "reject" && content == "mutant" then putStrLn "intended-build-rejection" >> exitWith (ExitFailure 1) else pure ()
+    ["incremental-test"] -> do
+      compiled <- readFile "dist-newstyle/compiled"
+      if compiled == "mutant" then putStrLn "capacity rule violated" >> exitWith (ExitFailure 1) else pure ()
     ["counter", path] -> do
       previous <- readFile path `catchIOError` const (pure "0")
       let n = (read previous :: Int) + 1

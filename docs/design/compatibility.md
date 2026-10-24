@@ -61,3 +61,9 @@ QuickCheck `2.19` (`3d8fe8686024760006ca1ca656cbdd82cd71f11e`) supplied
 the stable V2 formatter and native replay APIs. Hackage preferred versions
 were checked separately. STM 2.5.3.1 was inspected at mori://haskell/stm and
 verified against `v2.5.3.1` (`48bfb8812633e9b9d4fd1cdeb4c795cefb8f8014`).
+
+The core scheduler now uses the same verified released STM 2.5.3.1 API for
+atomic queue/claim transitions; no async framework or application effect stack
+is required. Worker processes and resource commands retain the shared POSIX
+supervisor. Timing observations and explicit per-build job limits are recorded
+in [scheduling](scheduling.md), separately from compatibility claims.

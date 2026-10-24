@@ -6,6 +6,7 @@ module Test.Heni.Manifest
     manifestSourceRoot,
     manifestPolicy,
     manifestCampaign,
+    manifestRunOptions,
     caseDefinitionJSON,
     Applicability (..),
     checkManifest,
@@ -32,23 +33,31 @@ import Test.Heni.Expectation
 import Test.Heni.Internal.Codec
 import Test.Heni.Internal.Files (withOwnedDirectory)
 import Test.Heni.Process
+import Test.Heni.Resource qualified as Resource
 import Test.Heni.Runner
 import Test.Heni.Workspace
 
 -- | Source roots are relative to the manifest file until readManifest resolves them.
-data Manifest = Manifest !FilePath !SnapshotPolicy !Campaign
+data Manifest = Manifest !FilePath !SnapshotPolicy !Campaign !Execution
+
+data Execution = Execution ![Resource.ResourceProvider] !(Map.Map CaseId [Text]) !Int !ReusePolicy
 
 -- | Declared source root, resolved by readManifest.
 manifestSourceRoot :: Manifest -> FilePath
-manifestSourceRoot (Manifest root _ _) = root
+manifestSourceRoot (Manifest root _ _ _) = root
 
 -- | Explicit source inclusion and exclusion choices.
 manifestPolicy :: Manifest -> SnapshotPolicy
-manifestPolicy (Manifest _ policy _) = policy
+manifestPolicy (Manifest _ policy _ _) = policy
 
 -- | The same validated campaign used by Haskell callers.
 manifestCampaign :: Manifest -> Campaign
-manifestCampaign (Manifest _ _ campaign) = campaign
+manifestCampaign (Manifest _ _ campaign _) = campaign
+
+-- | Lower portable execution/resource options into the shared library runner.
+manifestRunOptions :: FilePath -> Manifest -> RunOptions
+manifestRunOptions output (Manifest root policy _ (Execution providers claims jobs reuse)) =
+  (defaultRunOptions root output) {sourcePolicy = policy, workers = jobs, resources = providers, resourceClaims = claims, reusePolicy = reuse}
 
 -- | Explicit portable case representation, shared with report metadata.
 caseDefinitionJSON :: CaseDefinition -> Value
@@ -61,7 +70,7 @@ decodeManifest bytes
   | otherwise = either (Left . ConfigError "manifest" . Text.pack) Right $ decodeJSON bytes >>= parseEither parseManifest
 
 parseManifest :: Value -> Parser Manifest
-parseManifest = strictObject "manifest" ["schemaVersion", "sourceRoot", "sourcePolicy", "commands", "cases"] $ \o -> do
+parseManifest = strictObject "manifest" ["schemaVersion", "sourceRoot", "sourcePolicy", "commands", "cases", "resources", "execution"] $ \o -> do
   version <- o .: "schemaVersion"
   unless (version == (1 :: Int)) (fail "unsupported schemaVersion")
   root <- defaultField o "sourceRoot" "."
@@ -75,7 +84,19 @@ parseManifest = strictObject "manifest" ["schemaVersion", "sourceRoot", "sourceP
   caseValues <- o .: "cases"
   definitions <- forM (zip [0 ..] caseValues) $ \(index, value) -> parsePortableCase value <?> Index index
   campaign <- checked (mkCampaign (Map.fromList commands) [(definition, noHooks) | definition <- definitions])
-  pure (Manifest root policy campaign)
+  providers <- defaultField o "resources" [] >>= mapM (parseResource (Map.fromList commands))
+  checked (Resource.validateResources providers)
+  claims <- forM (zip definitions caseValues) $ \(CaseDefinition {caseId}, value) ->
+    withObject
+      "case resource claims"
+      ( \c -> do
+          names <- defaultField c "resources" []
+          unless (length names == Set.size (Set.fromList names) && all (`elem` map Resource.resourceName providers) names) (fail "unknown or duplicate resource claim")
+          pure (caseId, names)
+      )
+      value
+  (jobs, reuse) <- case KM.lookup "execution" o of Nothing -> pure (1, Fresh); Just value -> parseExecution value
+  pure (Manifest root policy campaign (Execution providers (Map.fromList claims) jobs reuse))
 
 parsePolicy :: Value -> Parser SnapshotPolicy
 parsePolicy = strictObject "sourcePolicy" ["includes", "excludes"] $ \o ->
@@ -118,7 +139,8 @@ parsePortableCase value = do
         _ -> pure ()
     )
     value
-  definition@CaseDefinition {edits, expectation, evidenceMode} <- parseCase value
+  stripped <- withObject "case" (pure . Object . KM.delete "resources") value
+  definition@CaseDefinition {edits, expectation, evidenceMode} <- parseCase stripped
   forM_ edits $ \case CustomEdit {} -> fail "custom Haskell hooks cannot be serialized in manifests"; _ -> pure ()
   case expectation of
     NamedTests {} | evidenceMode /= StructuredTestsV1 -> fail "named-tests requires adapter: heni-v1"
@@ -134,9 +156,9 @@ readManifest path = do
     bytes <- BS.readFile absolute
     case decodeManifest bytes of
       Left e -> pure (Left e)
-      Right (Manifest root policy campaign) -> do
+      Right (Manifest root policy campaign execution) -> do
         source <- Dir.canonicalizePath (takeDirectory absolute </> root)
-        pure (Right (Manifest source policy campaign))
+        pure (Right (Manifest source policy campaign execution))
   pure $ either (Left . ConfigError "manifest" . Text.pack . show) id (result :: Either IOException (Either ConfigError Manifest))
 
 -- | Static validation plus checked edit applicability; no test discovery or baseline.
@@ -146,7 +168,7 @@ data Applicability = Applicability {caseId :: !CaseId, applicable :: !Bool, diag
 -- | Check available commands and edits in fresh disposable candidates. Git is
 -- optional unless a selected definition contains a patch, and uses runCommand.
 checkManifest :: Manifest -> IO (Either ConfigError [Applicability])
-checkManifest (Manifest root policy campaign) =
+checkManifest (Manifest root policy campaign _) =
   catches
     (Right <$> action)
     [ Handler (\(e :: IOException) -> pure (Left (ConfigError "check" (Text.pack (show e))))),
@@ -172,3 +194,44 @@ checkManifest (Manifest root policy campaign) =
         Exited 0 -> pure (Right ())
         Exited _ -> pure (Left "Git rejected patch applicability")
         _ -> throwIO (EditInfrastructure (Text.pack (show outcome)))
+
+parseExecution :: Value -> Parser (Int, ReusePolicy)
+parseExecution = strictObject "execution" ["workers", "baselineReuse"] $ \o -> do
+  jobs <- defaultField o "workers" 1
+  unless (jobs > 0 && jobs <= 256) (fail "workers must be between 1 and 256")
+  reuse <- case KM.lookup "baselineReuse" o of
+    Nothing -> pure Fresh
+    Just Null -> pure Fresh
+    Just value ->
+      strictObject
+        "baselineReuse"
+        ["toolchain", "adapter"]
+        ( \r -> do
+            toolchain <- r .: "toolchain"
+            adapter <- r .:? "adapter"
+            unless (not (Text.null (Text.strip toolchain)) && maybe True (not . Text.null . Text.strip) adapter) (fail "empty reuse identity")
+            pure (ReuseBaselines toolchain adapter)
+        )
+        value
+  pure (jobs, reuse)
+
+parseResource :: Map.Map CommandId Command -> Value -> Parser Resource.ResourceProvider
+parseResource commands = strictObject "resource" ["name", "scope", "capacity", "identity", "version", "epoch", "environment", "setup", "reset", "teardown"] $ \o -> do
+  name <- o .: "name"
+  scope <-
+    defaultField o "scope" ("case" :: Text) >>= \case
+      "campaign" -> pure Resource.CampaignScope
+      "worker" -> pure Resource.WorkerScope
+      "case" -> pure Resource.CaseScope
+      _ -> fail "unknown resource scope"
+  capacity <- defaultField o "capacity" 1
+  identity <- o .: "identity"
+  version <- o .: "version"
+  epoch <- o .:? "epoch"
+  env <- defaultField o "environment" KM.empty >>= mapM (\(key, value) -> (Key.toString key,) <$> parseJSON value) . KM.toList
+  let binding = Resource.ResourceBinding identity version epoch env
+  _ <- checked (Resource.bindingEnvironment [(name, binding)])
+  let referenced key = do
+        ident <- o .: key >>= checked . mkCommandId
+        maybe (fail ("unknown resource command: " ++ Key.toString key)) pure (Map.lookup ident commands)
+  Resource.commandResource name scope capacity binding <$> referenced "setup" <*> referenced "reset" <*> referenced "teardown"

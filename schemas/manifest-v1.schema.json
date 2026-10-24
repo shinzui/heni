@@ -54,6 +54,56 @@
         "$ref": "#/$defs/case"
       },
       "minItems": 1
+    },
+    "resources": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/resource"
+      },
+      "default": []
+    },
+    "execution": {
+      "type": "object",
+      "properties": {
+        "workers": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 256,
+          "default": 1
+        },
+        "baselineReuse": {
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "toolchain": {
+                  "type": "string",
+                  "pattern": "\\S"
+                },
+                "adapter": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "pattern": "\\S"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "toolchain"
+              ],
+              "additionalProperties": false
+            }
+          ]
+        }
+      },
+      "additionalProperties": false
     }
   },
   "required": [
@@ -397,6 +447,15 @@
             null,
             "heni-v1"
           ]
+        },
+        "resources": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[A-Z][A-Z0-9_]*$"
+          },
+          "uniqueItems": true,
+          "default": []
         }
       },
       "required": [
@@ -544,6 +603,78 @@
           }
         }
       ]
+    },
+    "resource": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "pattern": "^[A-Z][A-Z0-9_]*$"
+        },
+        "scope": {
+          "enum": [
+            "campaign",
+            "worker",
+            "case"
+          ],
+          "default": "case"
+        },
+        "capacity": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 1
+        },
+        "identity": {
+          "type": "string",
+          "minLength": 1
+        },
+        "version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "epoch": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "environment": {
+          "type": "object",
+          "propertyNames": {
+            "pattern": "^HENI_RESOURCE_[A-Z][A-Z0-9_]*_[^=\\u0000]*$"
+          },
+          "additionalProperties": {
+            "type": "string"
+          },
+          "default": {}
+        },
+        "setup": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_.-]+$"
+        },
+        "reset": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_.-]+$"
+        },
+        "teardown": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_.-]+$"
+        }
+      },
+      "required": [
+        "name",
+        "identity",
+        "version",
+        "setup",
+        "reset",
+        "teardown"
+      ],
+      "additionalProperties": false
     }
   }
 }

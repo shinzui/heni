@@ -11,6 +11,12 @@ provenance:
     model: "gpt-6-astra"
     harness: "codex-cli"
     at: 2026-10-24T14:33:08Z
+  revisions:
+    - model: "gpt-6.1-sol"
+      harness: "codex-cli"
+      at: 2026-10-24T16:50:06Z
+      mode: "implement"
+      note: "Implement scoped providers, bounded scheduling and conservative campaign reuse"
 ---
 
 # Add resource-aware workers and verified reuse
@@ -28,27 +34,72 @@ Users can run independent cases concurrently, safely serialize shared resources,
 ## Progress
 
 
-- [ ] M1: Scoped resources acquire and release correctly under success, failure, and cancellation.
-- [ ] M2: Bounded workers preserve serial verdicts and obey resource limits without shared writable trees.
-- [ ] M3: Verified baseline/build reuse reduces repeated work without accepting stale evidence.
+- [x] (2026-10-24) M1: Scoped resources acquire and release correctly under success, failure, and cancellation.
+- [x] (2026-10-24) M2: Bounded workers preserve serial verdicts and obey resource limits without shared writable trees.
+- [x] (2026-10-24) M3: Verified baseline/build reuse reduces repeated work without accepting stale evidence.
 
 
 ## Surprises & Discoveries
 
 
-None yet.
+2026-10-24: Generic commands do not expose trustworthy build invalidation. The
+opt-in Haskell provider therefore verifies a content-key observation before any
+test, independently inventories source and retires suspicious retained state.
+The portable manifest supports baseline sharing but cannot serialize that
+arbitrary verifier. Same-size, identical-mtime fixtures pass fresh parity and
+reject a deliberately stale build.
+
+2026-10-24: Shared campaign journal ownership had to be separated from private
+case evidence before adding workers. Atomic multi-resource claims avoid lock
+ordering between consumers, while final result order remains the selected
+ledger order.
 
 
 ## Decision Log
 
 
-No implementation decisions yet; the approach below is the initial proposed contract.
+2026-10-24: Preserve fresh mode and make baseline sharing opt-in with complete
+in-memory identities and no secret hashes. Unknown external epochs and custom
+hooks disable reuse. A single producer serves matching baseline waiters and
+always releases them on cancellation.
+
+2026-10-24: Resource providers own external reset semantics, while Heni owns
+scopes, capacities, command supervision, reverse disposal and evidence retention.
+See [ADR 8](../adr/8-scoped-resources-and-conservative-reuse.md).
 
 
 ## Outcomes & Retrospective
 
 
-To be filled during implementation, including acceptance evidence, remaining limits, and friction triage.
+Accepted on macOS/GHC 9.12.4. `heni-scheduler` passed declaration/reverse
+release, partial acquisition, primary-plus-cleanup failure, timeout, all three
+scopes, worker acquisition capacity, atomic opposite-order claims, independent
+overlap, unique source trees, serial/parallel parity and cancellation ledger/
+release checks. Matching baselines execute once across workers; selector,
+command/build options, inherited environment and resource epochs invalidate
+sharing. Unknown epochs disable it, a new campaign has no persisted cache,
+and cleanup failure clears shared evidence before the next fresh case.
+
+Same-size alternating edits with identical mtimes preserve fresh outcomes.
+Stale input observation, undeclared generated source and unverified intentional
+compiler rejection are infrastructure failures. Verified expected build
+rejection retains its meaning. Retained artifact state is retired after failure.
+Portable reports validate baseline-owner provenance and resource command logs;
+secret resource values are absent from report configuration.
+
+CLI tests passed resource setup/reset/teardown, worker overrides, baseline reuse,
+missing setup artifact rejection, strict shared corpus and typed/library parity.
+The full regression suite passed with serial Cabal test jobs; focused scheduler
+and CLI checks passed again after the final build-observation and ASCII-name
+checks. Emitted report/protocol schemas and corpus checks passed. ADR 8 and
+`docs/design/scheduling.md` capture the durable contracts.
+
+Two real Cabal repeats per mode on Apple M1 Max measured fresh/one-worker
+81.118–81.132s with three baseline builds, versus reuse/two-workers
+37.707–37.896s with one. Outcomes agreed; these figures combine sharing and
+parallelism and do not claim isolated or universal speedups. Per-build Cabal
+jobs are explicitly one. Linux remains in the final release validation gate.
+No external-surface friction entries required triage for this child.
 
 
 ## Context and Orientation

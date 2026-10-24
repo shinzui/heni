@@ -21,7 +21,7 @@ import Text.Read (readMaybe)
 data Options = Options !Bool !String ![Text] ![Text] !(Maybe FilePath) !Int !Bool
 
 defaults :: Options
-defaults = Options False "auto" [] [] Nothing 1 False
+defaults = Options False "auto" [] [] Nothing 0 False
 
 mainCli :: IO ()
 mainCli = do
@@ -51,8 +51,8 @@ parseOptions "run" (Options json color cases tags output jobs recover) ("--case"
 parseOptions "run" (Options json color cases tags output jobs recover) ("--tag" : tag : rest) = parseOptions "run" (Options json color cases (tags ++ [Text.pack tag]) output jobs recover) rest
 parseOptions "run" (Options json color cases tags _ jobs recover) ("--output" : path : rest) = parseOptions "run" (Options json color cases tags (Just path) jobs recover) rest
 parseOptions "run" (Options json color cases tags output _ recover) ("--jobs" : value : rest) = case readMaybe value of
-  Just jobs | jobs == 1 -> parseOptions "run" (Options json color cases tags output jobs recover) rest
-  _ -> Left "--jobs currently supports 1; parallel scheduling is not available yet"
+  Just jobs | jobs > 0 && jobs <= 256 -> parseOptions "run" (Options json color cases tags output jobs recover) rest
+  _ -> Left "--jobs must be between 1 and 256"
 parseOptions "report" (Options json color cases tags output jobs _) ("--recover" : rest) = parseOptions "report" (Options json color cases tags output jobs True) rest
 parseOptions _ _ (unknown : _) = Left ("Unknown, incomplete, or unsupported option: " ++ unknown)
 
@@ -61,7 +61,7 @@ dispatch "report" path (Options json color _ _ _ _ recover) = do
   stored <- (if recover then recoverReport path else readReport path) >>= either throwIO pure
   if json then LBS.putStrLn (encode (reportJSON stored)) else case stored of StoredReport {result} -> render color result
   pure 0
-dispatch command path (Options json color cases tags output _ _) = do
+dispatch command path (Options json color cases tags output jobs _) = do
   manifest <- readManifest path >>= either (throwIO . ConfigurationFailure) pure
   let campaign = manifestCampaign manifest
       definitions = campaignCases campaign
@@ -93,14 +93,13 @@ dispatch command path (Options json color cases tags output _ _) = do
     "run" -> do
       selected <- either (throwIO . ConfigurationFailure) pure (selectDefinitions cases tags definitions)
       let directory = maybe (manifestSourceRoot manifest </> "mutation-results") id output
+          inheritedOptions = manifestRunOptions directory manifest
           options =
-            RunOptions
-              (manifestSourceRoot manifest)
-              directory
-              (manifestPolicy manifest)
-              (Just selected)
-              (\case CaseStarted i -> hPutStrLn stderr ("running " ++ Text.unpack (caseIdText i)); _ -> pure ())
-              (const (pure ()))
+            inheritedOptions
+              { selectedCases = Just selected,
+                workers = if jobs == 0 then workers inheritedOptions else jobs,
+                progress = \case CaseStarted i -> hPutStrLn stderr ("running " ++ Text.unpack (caseIdText i)); _ -> pure ()
+              }
       result <- runCampaign options campaign
       if json
         then LBS.putStrLn (encode (object ["schemaVersion" .= (1 :: Int), "reportPath" .= (directory </> "report.json"), "selectionRule" .= String "union within filter kind, intersection across case/tag kinds", "result" .= runResultJSON result]))
@@ -150,7 +149,7 @@ help =
       "Usage:",
       "  heni check MANIFEST [--json]",
       "  heni list MANIFEST [--json]",
-      "  heni run MANIFEST [--case ID] [--tag TAG] [--output DIRECTORY] [--jobs 1] [--json]",
+      "  heni run MANIFEST [--case ID] [--tag TAG] [--output DIRECTORY] [--jobs N] [--json]",
       "  heni report REPORT.json [--json]",
       "  heni report DIRECTORY --recover [--json]",
       "",

@@ -80,8 +80,7 @@ suite = bracket (Dir.getTemporaryDirectory >>= \tmp -> mkdtemp (tmp </> "heni-ru
   baseline <- runCampaign (defaultRunOptions source (root </> "baseline")) (campaign "diagnostic" definition noHooks)
   assert' "failed baseline prevents candidate" (case baseline of RunResult {results = [CaseResult {verdict = NotRun}], failures = [BaselineFailure {}]} -> True; _ -> False)
   BS.writeFile (source </> "input") "anchor\n"
-  let failedObserver = case defaultRunOptions source (root </> "observer") of
-        RunOptions s o p selected _ cleanup -> RunOptions s o p selected (\_ -> ioError (userError "observer failed")) cleanup
+  let failedObserver = (defaultRunOptions source (root </> "observer")) {progress = \_ -> ioError (userError "observer failed")}
   observer <- runCampaign failedObserver (campaign "diagnostic" definition noHooks)
   assert' "observer failure untrustworthy" (case observer of RunResult {status = RunUntrustworthy} -> True; _ -> False)
   let named = case definition of CaseDefinition i d ts es b t s _ mode -> CaseDefinition i d ts es b t s (NamedTests (Set.singleton "intended") NoReplay) mode
@@ -113,18 +112,12 @@ suite = bracket (Dir.getTemporaryDirectory >>= \tmp -> mkdtemp (tmp </> "heni-ru
   reportBytes <- BS.readFile (root </> "redacted/report.json")
   assert' "explicit secrets redacted in portable report" (not ("private-token" `BS.isInfixOf` reportBytes))
   cleanupCount <- newIORef (0 :: Int)
-  let badCleanup = case defaultRunOptions source (root </> "cleanup-failure") of
-        RunOptions s o p selected progress _ ->
-          RunOptions
-            s
-            o
-            p
-            selected
-            progress
-            ( \_ -> do
-                n <- atomicModifyIORef' cleanupCount (\n -> (n + 1, n + 1))
-                if n == 2 then ioError (userError "consumer cleanup failed") else pure ()
-            )
+  let badCleanup =
+        (defaultRunOptions source (root </> "cleanup-failure"))
+          { workspaceCleanup = \_ -> do
+              n <- atomicModifyIORef' cleanupCount (\n -> (n + 1, n + 1))
+              if n == 2 then ioError (userError "consumer cleanup failed") else pure ()
+          }
   cleanupFailed <- runCampaign badCleanup (campaign "diagnostic" definition noHooks)
   assert'
     "cleanup failure retains primary candidate evidence"
@@ -142,8 +135,12 @@ suite = bracket (Dir.getTemporaryDirectory >>= \tmp -> mkdtemp (tmp </> "heni-ru
   missingArtifact <- readReport (root </> "caught/report.json")
   assert' "missing baseline artifact is rejected" (case missingArtifact of Left _ -> True; _ -> False)
   -- Failed final writes still return infrastructure information in memory.
-  let sabotage = case defaultRunOptions source (root </> "unwritable") of
-        RunOptions s o p selected _ cleanup -> RunOptions s o p selected (\case CaseFinished {} -> Dir.removePathForcibly o >> BS.writeFile o "blocks report directory"; _ -> pure ()) cleanup
+  let sabotage =
+        (defaultRunOptions source (root </> "unwritable"))
+          { progress = \case
+              CaseFinished {} -> Dir.removePathForcibly (root </> "unwritable") >> BS.writeFile (root </> "unwritable") "blocks report directory"
+              _ -> pure ()
+          }
   diskFailure <- runCampaign sabotage (campaign "diagnostic" definition noHooks)
   assert' "report IO failure outranks caught case" (case diskFailure of RunResult {status = RunUntrustworthy} -> True; _ -> False)
   putStrLn "Real Cabal mutation cycle, lifecycle, portable reports and recovery checks passed"

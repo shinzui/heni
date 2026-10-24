@@ -53,3 +53,8 @@ types, following the scoped adaptation in [the boundary ADR](../adr/1-framework-
 protocol. `CaseHooks.replayBuilder` can build a native framework replay command;
 strong protocol facts remain authoritative even with a custom observer. See
 [adapter contracts](adapters.md) for named identities, replay and fresh probes.
+
+`RunOptions` also accepts bounded workers, scoped resources/claims and conservative
+reuse policies. Construct from `defaultRunOptions` and update named fields; portable
+callers use `manifestRunOptions`. [Scheduling contracts](scheduling.md) explain the
+Haskell-only build observation provider and resource ownership boundaries.

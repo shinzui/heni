@@ -716,6 +716,9 @@
         "runId": {
           "type": "string",
           "minLength": 1
+        },
+        "execution": {
+          "type": "object"
         }
       },
       "required": [

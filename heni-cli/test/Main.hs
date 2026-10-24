@@ -7,14 +7,16 @@ import Data.Aeson
 import Data.Aeson.KeyMap qualified as KM
 import Data.ByteString qualified as BS
 import Data.ByteString.Lazy qualified as LBS
+import Data.Foldable (toList)
 import Data.List (isInfixOf, isPrefixOf)
 import Data.Text qualified as Text
 import Data.Text.Encoding qualified as Text
 import Heni.Cli (exitCodeFor, selectDefinitions)
 import Paths_heni_cli (getDataFileName)
 import System.Directory qualified as Dir
+import System.Environment (lookupEnv)
 import System.Exit (ExitCode (..))
-import System.FilePath ((</>))
+import System.FilePath (takeDirectory, (</>))
 import System.Posix.Signals (sigINT, sigKILL, signalProcess)
 import System.Posix.Temp (mkdtemp)
 import System.Process (readProcessWithExitCode)
@@ -66,12 +68,41 @@ main = bracket (Dir.getTemporaryDirectory >>= \tmp -> mkdtemp (tmp </> "heni-cli
   assert' "check states it did not execute tests" (checkExit == ExitSuccess && case eitherDecodeStrict (Text.encodeUtf8 (Text.pack checkOutput)) :: Either String Value of Right (Object o) -> KM.lookup "testsExecuted" o == Just (Bool False); _ -> False)
   (listExit, listing, _) <- cli ["list", manifestPath, "--json"]
   assert' "list is JSON" (listExit == ExitSuccess && case eitherDecodeStrict (Text.encodeUtf8 (Text.pack listing)) :: Either String Value of Right _ -> True; _ -> False)
-  library <- runCampaign (RunOptions (manifestSourceRoot manifest) (root </> "library") (manifestPolicy manifest) (Just (checked (selectDefinitions ["caught"] [] definitions))) (const (pure ())) (const (pure ()))) (manifestCampaign manifest)
+  library <- runCampaign ((manifestRunOptions (root </> "library") manifest) {selectedCases = Just (checked (selectDefinitions ["caught"] [] definitions))}) (manifestCampaign manifest)
   (caughtExit, runOutput, progress) <- cli ["run", manifestPath, "--case", "caught", "--output", root </> "cli", "--json", "--color", "always"]
   assert' "caught exit and clean machine stdout" (caughtExit == ExitSuccess && not ('\ESC' `elem` runOutput) && "running caught" `isInfixOf` progress)
   cliStored <- readReport (root </> "cli/report.json") >>= either (error . show) pure
   let signature RunResult {results} = [(caseIdText caseId, verdict, [(stage, outcome) | StageEvidence {stage, outcome} <- stages]) | CaseResult {caseId, verdict, evidence = CaseEvidence {stages}} <- results]
   assert' "library/CLI share stage decisions and verdicts" (case cliStored of StoredReport {result} -> signature result == signature library && exitCodeFor result == 0)
+  let resourceValue = case value of
+        Object o ->
+          Object
+            ( KM.insert
+                "execution"
+                (object ["workers" .= (2 :: Int), "baselineReuse" .= object ["toolchain" .= String "self-contained-fixture/v1"]])
+                ( KM.insert
+                    "resources"
+                    (toJSON [object ["name" .= String "DB", "scope" .= String "case", "identity" .= String "local-fixture", "version" .= String "v1", "epoch" .= String "clean", "environment" .= object ["HENI_RESOURCE_DB_TOKEN" .= String "resource-private-secret"], "setup" .= String "build", "reset" .= String "build", "teardown" .= String "build"]])
+                    (KM.insert "cases" (case KM.lookup "cases" o of Just (Array cases) -> toJSON [case c of Object fields -> Object (KM.insert "resources" (toJSON (["DB"] :: [String])) fields); other -> other | c <- toList cases]; _ -> Null) o)
+                )
+            )
+        other -> other
+      resourceManifest = root </> "resources.json"
+  LBS.writeFile resourceManifest (encode resourceValue)
+  configured <- readManifest resourceManifest >>= either (error . show) pure
+  configuredLibrary <- runCampaign (manifestRunOptions (root </> "resource-library") configured) (manifestCampaign configured)
+  (resourceExit, _, _) <- cli ["run", resourceManifest, "--jobs", "2", "--output", root </> "resource-cli", "--json"]
+  resourceStored <- readReport (root </> "resource-cli/report.json") >>= either (error . show) pure
+  assert' "resource commands/workers/reuse share library and CLI outcomes" (resourceExit == ExitFailure 1 && case resourceStored of StoredReport {result} -> signature result == signature configuredLibrary)
+  reportWithResources <- BS.readFile (root </> "resource-cli/report.json")
+  assert' "resource command configuration is redacted" (not ("resource-private-secret" `BS.isInfixOf` reportWithResources))
+  fixtureOutput <- lookupEnv "HENI_SCHEMA_RESOURCE"
+  forM_ fixtureOutput $ \path -> do
+    Dir.createDirectoryIfMissing True (takeDirectory path)
+    BS.writeFile path reportWithResources
+  Dir.removeFile (root </> "resource-cli/resource-DB-case-caught-0.stdout.log")
+  missingResourceLog <- readReport (root </> "resource-cli/report.json")
+  assert' "missing setup command artifact invalidates portable report" (case missingResourceLog of Left _ -> True; _ -> False)
   (survivorExit, human, _) <- cli ["run", manifestPath, "--case", "survivor", "--output", root </> "survivor"]
   assert' "survivor exit and redirected output without ANSI" (survivorExit == ExitFailure 1 && not ('\ESC' `elem` human))
   (emptyExit, _, _) <- cli ["run", manifestPath, "--tag", "absent", "--output", root </> "empty"]
