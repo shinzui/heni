@@ -10,12 +10,14 @@ module Test.Heni
     module Test.Heni.Result,
     module Test.Heni.Runner,
     module Test.Heni.Report,
+    module Test.Heni.Manifest,
   )
 where
 
 import Test.Heni.Case
 import Test.Heni.Command
 import Test.Heni.Expectation
+import Test.Heni.Manifest
 import Test.Heni.Report
 import Test.Heni.Result
 import Test.Heni.Runner

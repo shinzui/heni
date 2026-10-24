@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "commands": {
+    "build": {
+      "executable": "heni-fixture",
+      "arguments": [
+        "exit",
+        "0"
+      ]
+    },
+    "test": {
+      "executable": "heni-fixture",
+      "arguments": [
+        "check",
+        "input",
+        "diagnostic"
+      ]
+    }
+  },
+  "cases": [
+    {
+      "id": "caught",
+      "description": "Detect the intended fault",
+      "edits": [
+        {
+          "kind": "replace",
+          "path": "input",
+          "old": "anchor",
+          "new": "mutant"
+        }
+      ],
+      "build": "build",
+      "test": "test",
+      "expect": {
+        "kind": "diagnostic",
+        "stage": "test",
+        "exitCode": 1,
+        "outputContains": "capacity rule violated"
+      }
+    }
+  ]
+}

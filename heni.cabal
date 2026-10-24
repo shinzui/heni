@@ -29,6 +29,7 @@ extra-source-files:
 data-files:
   examples/minimal/*.cabal
   examples/minimal/cabal.project
+  examples/minimal/heni.json
   examples/minimal/src/*.hs
   examples/minimal/test/*.hs
 
@@ -73,6 +74,7 @@ library
     Test.Heni.Command
     Test.Heni.Edit
     Test.Heni.Expectation
+    Test.Heni.Manifest
     Test.Heni.Process
     Test.Heni.Report
     Test.Heni.Result

@@ -7,6 +7,7 @@ module Test.Heni.Report
     recoverReport,
     writeReport,
     appendJournal,
+    runResultJSON,
   )
 where
 
@@ -28,6 +29,10 @@ import Test.Heni.Internal.Codec
 import Test.Heni.Internal.Files (WorkspaceError, checkedPath)
 import Test.Heni.Result
 import Prelude hiding (sequence)
+
+-- | Version-one run-result payload used by nonterminal renderers.
+runResultJSON :: RunResult -> Value
+runResultJSON = resultJSON
 
 -- | Effective, redacted configuration and the authoritative classified result.
 data StoredReport = StoredReport {metadata :: !Value, result :: !RunResult}

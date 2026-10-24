@@ -11,6 +11,12 @@ provenance:
     model: "gpt-6-astra"
     harness: "codex-cli"
     at: 2026-10-24T14:33:08Z
+  revisions:
+    - model: "gpt-6.1-sol"
+      harness: "codex-cli"
+      at: 2026-10-24T15:51:18Z
+      mode: "implement"
+      note: "Implement strict JSON lowering, shared-library CLI commands, portable schemas, and parity checks"
 ---
 
 # Expose strict manifests and the shared CLI
@@ -28,27 +34,29 @@ Shell, Python, and CI callers can define a mutation in versioned JSON and use `h
 ## Progress
 
 
-- [ ] M1: Strict versioned manifests lower into the library model with actionable diagnostics.
-- [ ] M2: CLI commands execute and render the shared library behavior with predictable exits.
-- [ ] M3: Library/CLI parity, schema agreement, and noninteractive use pass end-to-end checks.
+- [x] M1 (2026-10-24; strict token/field/reference/default validation and shared schema corpus pass): Strict versioned manifests lower into the library model with actionable diagnostics.
+- [x] M2 (2026-10-24; check/list/run/report, exits, clean JSON and real SIGINT finalization pass): CLI commands execute and render the shared library behavior with predictable exits.
+- [x] M3 (2026-10-24; library/CLI stage/verdict parity, moved reports and real Cabal guard case pass): Library/CLI parity, schema agreement, and noninteractive use pass end-to-end checks.
 
 
 ## Surprises & Discoveries
 
 
-None yet.
+The input boundary must distinguish missing fields from explicit nulls: Aeson optional-field defaults otherwise accept null silently. Shared corpus fixtures now assert the intended schema/decoder behavior. JSON Schema alone cannot detect duplicate keys or validate cross-command references, so the decoder retains those semantic checks.
 
 
 ## Decision Log
 
 
-No implementation decisions yet; the approach below is the initial proposed contract.
+2026-10-24: Keep a small argument parser and rendering in heni-cli; the core library owns manifest lowering and isolated applicability checks. Source paths are manifest-relative; explicit CLI output paths are caller-relative by deliberate documented convention.
+
+2026-10-24: Until the corresponding owners implement them, reject portable named/replay/attempt-bound crash and resource options clearly. Do not silently accept unexecuted features. The v1 schemas remain pre-publication contracts coordinated with later owners.
 
 
 ## Outcomes & Retrospective
 
 
-To be filled during implementation, including acceptance evidence, remaining limits, and friction triage.
+`cabal test heni-cli:heni-cli-test --test-show-details=direct` passes the shared manifest corpus, library/CLI verdict and stage-decision parity, caught/survivor/empty-selection exits, clean redirected JSON/human output, no command execution during check/list, moved report/recovery rendering and a real POSIX SIGINT returning 130 with a complete interrupted ledger. `heni check examples/minimal/heni.json` reports all three edits applicable without tests, and the real CLI guard-bypass run passes with its precise diagnostic. The Python Draft 2020-12 validator accepts both schemas, the shared corpus and real emitted report. Docs/cli.md and docs/troubleshooting.md describe implemented behavior and every outcome. Wire/CLI decisions are distilled in docs/adr/6-explicit-portable-wire-boundaries.md. No friction met the recording threshold.
 
 
 ## Context and Orientation

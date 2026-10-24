@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "commands": {
+    "build": {"executable": "cabal", "arguments": ["build", "fixture-test", "--offline"], "timeoutSeconds": 60},
+    "test": {"executable": "cabal", "arguments": ["test", "fixture-test", "--offline", "--test-show-details=direct"], "timeoutSeconds": 60}
+  },
+  "cases": [
+    {"id": "guard-bypass", "description": "The capacity assertion must detect removal of the guard.", "tags": ["regression"],
+     "edits": [{"kind": "replace", "path": "src/Capacity.hs", "old": "used < limit", "new": "True"}],
+     "build": "build", "test": "test", "expect": {"kind": "diagnostic", "stage": "test", "exitCode": 1, "outputContains": "rejects full capacity: FAIL"}},
+    {"id": "survivor", "description": "A harmless marker edit demonstrates a surviving mutation.", "tags": ["example"],
+     "edits": [{"kind": "replace", "path": "src/Capacity.hs", "old": "baseline", "new": "mutant"}],
+     "build": "build", "test": "test", "expect": {"kind": "diagnostic", "stage": "test", "exitCode": 1, "outputContains": "rejects full capacity: FAIL"}},
+    {"id": "compile-error", "description": "An unrelated compile failure cannot prove semantic detection.", "tags": ["example"],
+     "edits": [{"kind": "replace", "path": "src/Capacity.hs", "old": "used < limit", "new": "missingCapacityGuard"}],
+     "build": "build", "test": "test", "expect": {"kind": "diagnostic", "stage": "test", "exitCode": 1, "outputContains": "rejects full capacity: FAIL"}}
+  ]
+}

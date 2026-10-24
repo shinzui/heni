@@ -63,7 +63,13 @@ main = do
         else pure ()
     ["check", path, "timeout", marker] -> do
       content <- readFile path
-      if "mutant" `isInfixOf` content then writeFile marker "ready" >> putStrLn "capacity rule violated" >> threadDelay 30000000 else pure ()
+      if "mutant" `isInfixOf` content
+        then do
+          pid <- getProcessID
+          writeFile marker (show pid)
+          putStrLn "capacity rule violated"
+          threadDelay 30000000
+        else pure ()
     "echo" : args -> mapM_ print args
     _ -> error "unknown fixture mode"
 

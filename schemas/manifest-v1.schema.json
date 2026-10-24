@@ -1,0 +1,426 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/shinzui/heni/master/schemas/manifest-v1.schema.json",
+  "title": "Heni manifest v1",
+  "type": "object",
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "sourceRoot": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^(?!/)[^\\u0000]+$",
+      "default": "."
+    },
+    "sourcePolicy": {
+      "type": "object",
+      "properties": {
+        "includes": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "^(?!/)(?!.*(?:^|/)\\.{1,2}(?:/|$))(?!.*//)(?!.*/$)(?!.*[\\\\:\\u0000]).+$"
+          },
+          "default": []
+        },
+        "excludes": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "^(?!/)(?!.*(?:^|/)\\.{1,2}(?:/|$))(?!.*//)(?!.*/$)(?!.*[\\\\:\\u0000]).+$"
+          },
+          "default": []
+        }
+      },
+      "required": [],
+      "additionalProperties": false
+    },
+    "commands": {
+      "type": "object",
+      "propertyNames": {
+        "type": "string",
+        "pattern": "^[A-Za-z0-9_.-]+$"
+      },
+      "additionalProperties": {
+        "$ref": "#/$defs/command"
+      }
+    },
+    "cases": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/case"
+      },
+      "minItems": 1
+    }
+  },
+  "required": [
+    "schemaVersion",
+    "commands",
+    "cases"
+  ],
+  "additionalProperties": false,
+  "$defs": {
+    "command": {
+      "type": "object",
+      "properties": {
+        "executable": {
+          "type": "string",
+          "minLength": 1
+        },
+        "arguments": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": []
+        },
+        "sensitiveArguments": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "uniqueItems": true,
+          "default": []
+        },
+        "workingDirectory": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "pattern": "^(?!/)(?!.*(?:^|/)\\.{1,2}(?:/|$))(?!.*//)(?!.*/$)(?!.*[\\\\:\\u0000]).+$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "environment": {
+          "type": "object",
+          "propertyNames": {
+            "pattern": "^[^=\\u0000]+$"
+          },
+          "additionalProperties": {
+            "type": "string"
+          },
+          "default": {}
+        },
+        "timeoutSeconds": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 86400,
+          "default": 30
+        },
+        "outputLimitBytes": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 1048576
+        }
+      },
+      "required": [
+        "executable"
+      ],
+      "additionalProperties": false
+    },
+    "edit": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "replace"
+            },
+            "path": {
+              "type": "string",
+              "minLength": 1,
+              "pattern": "^(?!/)(?!.*(?:^|/)\\.{1,2}(?:/|$))(?!.*//)(?!.*/$)(?!.*[\\\\:\\u0000]).+$"
+            },
+            "old": {
+              "type": "string",
+              "minLength": 1
+            },
+            "new": {
+              "type": "string"
+            },
+            "occurrences": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1
+            }
+          },
+          "required": [
+            "kind",
+            "path",
+            "old",
+            "new"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "create"
+            },
+            "path": {
+              "type": "string",
+              "minLength": 1,
+              "pattern": "^(?!/)(?!.*(?:^|/)\\.{1,2}(?:/|$))(?!.*//)(?!.*/$)(?!.*[\\\\:\\u0000]).+$"
+            },
+            "content": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "path",
+            "content"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "delete"
+            },
+            "path": {
+              "type": "string",
+              "minLength": 1,
+              "pattern": "^(?!/)(?!.*(?:^|/)\\.{1,2}(?:/|$))(?!.*//)(?!.*/$)(?!.*[\\\\:\\u0000]).+$"
+            },
+            "expected": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "path",
+            "expected"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "patch"
+            },
+            "content": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": [
+            "kind",
+            "content"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "expectation": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "diagnostic"
+            },
+            "stage": {
+              "enum": [
+                "build",
+                "test"
+              ]
+            },
+            "exitCode": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "outputContains": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": [
+            "kind",
+            "stage",
+            "exitCode",
+            "outputContains"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "build-rejection"
+            },
+            "exitCode": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "outputContains": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": [
+            "kind",
+            "exitCode",
+            "outputContains"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "control"
+            }
+          },
+          "required": [
+            "kind"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "case": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_.-]+$"
+        },
+        "description": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "uniqueItems": true,
+          "default": []
+        },
+        "edits": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/edit"
+          },
+          "default": []
+        },
+        "build": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_.-]+$"
+        },
+        "test": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9_.-]+$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "selector": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "\\S"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "expect": {
+          "$ref": "#/$defs/expectation"
+        }
+      },
+      "required": [
+        "id",
+        "description",
+        "build",
+        "expect"
+      ],
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "expect": {
+                "properties": {
+                  "kind": {
+                    "const": "control"
+                  }
+                }
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "edits": {
+                "maxItems": 0
+              },
+              "test": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9_.-]+$"
+              }
+            },
+            "required": [
+              "test"
+            ]
+          },
+          "else": {
+            "required": [
+              "edits"
+            ],
+            "properties": {
+              "edits": {
+                "minItems": 1
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "expect": {
+                "properties": {
+                  "kind": {
+                    "const": "diagnostic"
+                  },
+                  "stage": {
+                    "const": "test"
+                  }
+                },
+                "required": [
+                  "stage"
+                ]
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "test"
+            ],
+            "properties": {
+              "test": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9_.-]+$"
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

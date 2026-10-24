@@ -18,9 +18,9 @@ name and command: `heni`.
 
 ## Project status
 
-Heni is under active development. The library runs checked mutations in fresh
+Heni is under active development. The library and CLI run checked mutations in fresh
 workspaces with bounded subprocesses, precise classification and portable
-reports. The CLI, framework adapters and release gates are tracked by
+reports. Framework adapters and release gates are tracked by
 [the bootstrap plan](docs/masterplans/1-bootstrap-heni-for-trustworthy-mutation-testing-and-hackage-release.md).
 No Hackage release is published by this work.
 
