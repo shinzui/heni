@@ -58,21 +58,21 @@ suite = bracket (Dir.getTemporaryDirectory >>= \tmp -> mkdtemp (tmp </> "heni-ru
       budget = checked (mkStageBudget 1000000)
       cmd args = Command "heni-fixture" args Set.empty Nothing [] budget (OutputPolicy 1024)
       source = root </> "source"
-      definition = CaseDefinition selectedId "Detect the intended fixture fault" Set.empty [Replace (checked (mkRelativeTarget "input")) "anchor" "mutant" 1] buildId (Just testId) Nothing (Diagnostic Test 1 "capacity rule violated")
+      definition = CaseDefinition selectedId "Detect the intended fixture fault" Set.empty [Replace (checked (mkRelativeTarget "input")) "anchor" "mutant" 1] buildId (Just testId) Nothing (Diagnostic Test 1 "capacity rule violated") GenericCommands
       campaign mode c hooks = checked (mkCampaign (Map.fromList [(buildId, cmd ["exit", "0"]), (testId, cmd ["check", "input", mode])]) [(c, hooks)])
   Dir.createDirectory source
   BS.writeFile (source </> "input") "anchor\n"
   forM_ [("caught", "diagnostic", Caught), ("wrong", "wrong", WrongFailure), ("timeout", "timeout", TimedOut), ("survivor", "pass", Survived)] $ \(name, mode, expected) -> do
     observed <- runCampaign (defaultRunOptions source (root </> name)) (campaign mode definition noHooks)
     assert' (name ++ " classification") (case observed of RunResult {results = [CaseResult {verdict}]} -> verdict == expected; _ -> False)
-  let invalid = case definition of CaseDefinition i d ts _ b t s e -> CaseDefinition i d ts [Replace (checked (mkRelativeTarget "input")) "missing" "bad" 1] b t s e
+  let invalid = case definition of CaseDefinition i d ts _ b t s e mode -> CaseDefinition i d ts [Replace (checked (mkRelativeTarget "input")) "missing" "bad" 1] b t s e mode
   stale <- runCampaign (defaultRunOptions source (root </> "stale")) (campaign "diagnostic" invalid noHooks)
   assert' "invalid edit distinct" (case stale of RunResult {results = [CaseResult {verdict = InvalidMutation}]} -> True; _ -> False)
   let patch = "diff --git a/input b/input\n--- a/input\n+++ b/input\n@@ -1 +1 @@\n-anchor\n+mutant\n"
-      patchedDefinition = case definition of CaseDefinition i d ts _ b t s e -> CaseDefinition i d ts [Patch patch] b t s e
+      patchedDefinition = case definition of CaseDefinition i d ts _ b t s e mode -> CaseDefinition i d ts [Patch patch] b t s e mode
   patched <- runCampaign (defaultRunOptions source (root </> "patch")) (campaign "diagnostic" patchedDefinition noHooks)
   assert' "production Git path uses supervised patch runner" (case patched of RunResult {results = [CaseResult {verdict = Caught}]} -> True; _ -> False)
-  let control = case definition of CaseDefinition i d ts _ b t s _ -> CaseDefinition i d ts [] b t s Control
+  let control = case definition of CaseDefinition i d ts _ b t s _ mode -> CaseDefinition i d ts [] b t s Control mode
       failedControl = checked (mkCampaign (Map.fromList [(buildId, cmd ["exit", "0"]), (testId, cmd ["counter", root </> "control-counter"])]) [(control, noHooks)])
   controlResult <- runCampaign (defaultRunOptions source (root </> "control")) failedControl
   assert' "failed control cannot pass run" (case controlResult of RunResult {status = RunFailed, results = [CaseResult {verdict = WrongFailure}], failures = [ControlFailure {}]} -> True; _ -> False)
@@ -84,7 +84,7 @@ suite = bracket (Dir.getTemporaryDirectory >>= \tmp -> mkdtemp (tmp </> "heni-ru
         RunOptions s o p selected _ cleanup -> RunOptions s o p selected (\_ -> ioError (userError "observer failed")) cleanup
   observer <- runCampaign failedObserver (campaign "diagnostic" definition noHooks)
   assert' "observer failure untrustworthy" (case observer of RunResult {status = RunUntrustworthy} -> True; _ -> False)
-  let named = case definition of CaseDefinition i d ts es b t s _ -> CaseDefinition i d ts es b t s (NamedTests (Set.singleton "intended") NoReplay)
+  let named = case definition of CaseDefinition i d ts es b t s _ mode -> CaseDefinition i d ts es b t s (NamedTests (Set.singleton "intended") NoReplay) mode
   uncoveredBaseline <- runCampaign (defaultRunOptions source (root </> "empty-selection")) (campaign "diagnostic" named noHooks)
   assert' "absent named selection blocks candidate" (case uncoveredBaseline of RunResult {results = [CaseResult {verdict = NotRun}], failures = [BaselineFailure {}]} -> True; _ -> False)
   let existing = root </> "caught"
@@ -94,7 +94,7 @@ suite = bracket (Dir.getTemporaryDirectory >>= \tmp -> mkdtemp (tmp </> "heni-ru
   -- the active and queued case exactly once before rethrowing cancellation.
   let readyPath = root </> "candidate-ready"
   done <- newEmptyMVar
-  let second = case definition of CaseDefinition _ d ts es b t s e -> CaseDefinition (checked (mkCaseId "queued")) d ts es b t s e
+  let second = case definition of CaseDefinition _ d ts es b t s e mode -> CaseDefinition (checked (mkCaseId "queued")) d ts es b t s e mode
       commands = Map.fromList [(buildId, cmd ["exit", "0"]), (testId, cmd ["check", "input", "timeout", readyPath])]
       cancellationCampaign = checked (mkCampaign commands [(definition, noHooks), (second, noHooks)])
       cancelOptions = defaultRunOptions source (root </> "cancelled")

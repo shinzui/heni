@@ -25,7 +25,7 @@ import Test.Heni.Internal.Model
 
 -- | Classify observations without running IO. Validity gates precede all witnesses.
 classifyCase :: CaseDefinition -> CaseEvidence -> CaseResult
-classifyCase definition@CaseDefinition {caseId, expectation} evidence@CaseEvidence {baseline, mutation, stages, infrastructureErrors, cleanupErrors, stopped}
+classifyCase definition@CaseDefinition {caseId, expectation, evidenceMode} evidence@CaseEvidence {baseline, mutation, stages, infrastructureErrors, cleanupErrors, stopped}
   | Left err <- validateCase definition = result InfrastructureError Nothing (Text.pack (show err))
   | not (null infrastructureErrors && null cleanupErrors) = result InfrastructureError Nothing "infrastructure or cleanup failed"
   | any stageInfrastructure stages = result InfrastructureError Nothing "launch, setup, output, or evidence protocol failed"
@@ -35,10 +35,11 @@ classifyCase definition@CaseDefinition {caseId, expectation} evidence@CaseEviden
   | EditRejected why <- mutation = result InvalidMutation Nothing why
   | expectation /= Control && mutation /= Changed = result InvalidMutation Nothing "mutation did not change bytes"
   | expectation == Control && mutation /= Unchanged = result InvalidMutation Nothing "control changed bytes"
-  | any (\StageEvidence {outcome} -> outcome == Timeout) stages = result TimedOut Nothing "stage exceeded wall-clock budget"
+  | any (\StageEvidence {stage, outcome} -> outcome == Timeout && (stage /= Replay || not requiresReplay)) stages = result TimedOut Nothing "stage exceeded wall-clock budget"
   | any (\StageEvidence {outcome} -> outcome == Cancelled) stages = result NotRun Nothing "stage cancelled"
   | otherwise = classifyExpectation expectation
   where
+    requiresReplay = case expectation of NamedTests _ RequireReplay -> True; _ -> False
     semanticCase = case expectation of
       NamedTests {} -> True
       Diagnostic Test _ _ -> True
@@ -51,6 +52,9 @@ classifyCase definition@CaseDefinition {caseId, expectation} evidence@CaseEviden
       | not (passed Build) = result UnexpectedBuildFailure Nothing "semantic candidate did not build"
       | otherwise = next
     missing = result InfrastructureError Nothing "missing required stage evidence"
+    selectionGate next = case at Test of
+      Just StageEvidence {selection = SelectionEvidence {selected, executed}} | evidenceMode == StructuredTestsV1 && (maybe True (<= 0) selected || maybe True (<= 0) executed) -> result Uncovered Nothing "structured test selection did not execute"
+      _ -> next
     wrong = result WrongFailure Nothing "observed failure did not match the declared expectation"
     survived = result Survived Nothing "candidate passed without the required detection"
     caught kind = result Caught (Just kind) "declared failure and witness matched"
@@ -61,7 +65,7 @@ classifyCase definition@CaseDefinition {caseId, expectation} evidence@CaseEviden
         | outcome == Exited 0 -> survived
         | otherwise -> wrong
     classifyExpectation (Diagnostic Build code witness) = diagnostic Build code witness ExpectedBuildRejection
-    classifyExpectation (Diagnostic s code witness) = buildGate (diagnostic s code witness GenericDiagnostic)
+    classifyExpectation (Diagnostic s code witness) = buildGate (selectionGate (diagnostic s code witness GenericDiagnostic))
     classifyExpectation (BuildRejection code witness) = diagnostic Build code witness ExpectedBuildRejection
     classifyExpectation (CrashProbe sig probe) = buildGate $ case at Test of
       Nothing -> missing
@@ -69,7 +73,7 @@ classifyCase definition@CaseDefinition {caseId, expectation} evidence@CaseEviden
         | outcome == Signaled sig && probe `Text.isInfixOf` transcript -> caught ExplicitCrash
         | outcome == Exited 0 -> survived
         | otherwise -> wrong
-    classifyExpectation Control = buildGate $ case at Test of
+    classifyExpectation Control = buildGate $ selectionGate $ case at Test of
       Nothing -> missing
       Just StageEvidence {outcome = Exited 0} -> result Caught (Just ControlPassed) "unchanged control passed"
       _ -> wrong

@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "sourceRoot": ".",
+  "commands": {
+    "build": {
+      "executable": "heni-hspec-fixture",
+      "arguments": [
+        "--heni-build"
+      ]
+    },
+    "test": {
+      "executable": "heni-hspec-fixture"
+    }
+  },
+  "cases": [
+    {
+      "id": "named",
+      "description": "Detect the intended assertion",
+      "adapter": "v999",
+      "edits": [
+        {
+          "kind": "replace",
+          "path": "input",
+          "old": "anchor",
+          "new": "intended"
+        }
+      ],
+      "build": "build",
+      "test": "test",
+      "expect": {
+        "kind": "named-tests",
+        "failures": [
+          "suite/intended"
+        ]
+      }
+    }
+  ]
+}

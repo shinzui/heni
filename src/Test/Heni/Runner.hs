@@ -28,13 +28,16 @@ import Data.Version (showVersion)
 import System.Directory qualified as Dir
 import System.FilePath (takeDirectory)
 import System.Info qualified as Platform
+import Test.Heni.Adapter qualified as Adapter
 import Test.Heni.Case
 import Test.Heni.Command
+import Test.Heni.Crash qualified as Crash
 import Test.Heni.Edit
 import Test.Heni.Expectation
 import Test.Heni.Internal.Codec
 import Test.Heni.Internal.Files (digest, withFinalizer)
 import Test.Heni.Process
+import Test.Heni.Replay qualified as Replay
 import Test.Heni.Report
 import Test.Heni.Result
 import Test.Heni.Workspace
@@ -118,6 +121,8 @@ runCampaign RunOptions {sourceRoot, outputDirectory, sourcePolicy, selectedCases
   stagesRef <- newIORef []
   errorsRef <- newIORef []
   cleanupRef <- newIORef []
+  runIdentity <- newIORef ""
+  producerIdentity <- newIORef Nothing
   let summary = do
         results <- Map.elems <$> readIORef resultsRef
         failures <- readIORef failuresRef
@@ -139,13 +144,20 @@ runCampaign RunOptions {sourceRoot, outputDirectory, sourcePolicy, selectedCases
       addCaseDetails caseId key value = modifyIORef' contextRef $ \context -> case context of
         Object metadata -> Object (mapToKeyMap metadata caseId key value)
         _ -> context
-      runStage definition@CaseDefinition {caseId, expectation} hooks role workspace stage command = do
+      runStage definition@CaseDefinition {caseId, expectation, evidenceMode} hooks role workspace stage command = do
+        identity <- readIORef runIdentity
+        attempt <-
+          if stage `elem` [Test, Replay] && (evidenceMode == StructuredTestsV1 || isCrash expectation)
+            then Just <$> Adapter.newEvidenceAttempt outputDirectory identity caseId stage role
+            else pure Nothing
         let prefix = Text.unpack (caseIdText caseId <> "-" <> role <> "-" <> stageName stage)
             wanted = witnessesFor expectation stage
+            effectiveCommand = withEnvironment (maybe [] Adapter.attemptEnvironment attempt) (withSelector definition command)
             options = case defaultProcessOptions outputDirectory prefix of
-              ProcessOptions d p g _ e observer -> ProcessOptions d p g wanted e observer
+              ProcessOptions d p g _ _ observer -> ProcessOptions d p g wanted reservedEnvironment observer
             record processReport@ProcessReport {evidence, errors, logs, preservedWitnesses} = do
-              enhanced <- enhance hooks evidence
+              normalized <- normalizeAttempt producerIdentity definition attempt evidence
+              enhanced <- if evidenceMode == StructuredTestsV1 then observeStructured hooks normalized else enhance hooks normalized
               when (role == "candidate") $ do
                 modifyIORef' stagesRef (++ [enhanced])
               let invalidEvidence = either pure (const []) (validateStageEvidence enhanced)
@@ -154,13 +166,19 @@ runCampaign RunOptions {sourceRoot, outputDirectory, sourcePolicy, selectedCases
                 caseId
                 (role <> "-" <> stageName stage)
                 ( object
-                    ["stage" .= stageJSON enhanced, "logs" .= map logJSON logs, "preservedWitnesses" .= preservedWitnesses, "errors" .= errors]
+                    [ "stage" .= stageJSON enhanced,
+                      "logs" .= map logJSON logs,
+                      "preservedWitnesses" .= preservedWitnesses,
+                      "errors" .= errors,
+                      "command" .= redactedCommand effectiveCommand,
+                      "attempt" .= maybe Null Adapter.attemptIdentityJSON attempt
+                    ]
                 )
               updatePartial definition
               journal "stage"
               progress (StageFinished caseId role enhanced)
               pure (processReport, enhanced)
-        process <- try (runCommand options workspace stage (withSelector definition command))
+        process <- try (runCommand options workspace stage effectiveCommand)
         case process of
           Left ProcessAborted {report, cause} -> record report >> throwIO cause
           Right report -> record report
@@ -170,6 +188,7 @@ runCampaign RunOptions {sourceRoot, outputDirectory, sourcePolicy, selectedCases
         writeIORef stagesRef []
         writeIORef errorsRef []
         writeIORef cleanupRef []
+        writeIORef producerIdentity Nothing
         updatePartial definition
         attempted <- try $ restore $ do
           progress (CaseStarted caseId)
@@ -182,7 +201,7 @@ runCampaign RunOptions {sourceRoot, outputDirectory, sourcePolicy, selectedCases
                     Nothing -> pure True
                     Just testId | needsTest expectation -> do
                       (testReport, testEvidence) <- runStage definition hooks "baseline" workspace Test (commands Map.! testId)
-                      pure (stagePassed testReport testEvidence && baselineSelection expectation testEvidence)
+                      pure (stagePassed testReport testEvidence && baselineSelection definition testEvidence)
                     _ -> pure True
             )
               `withFinalizer` cleanup workspace
@@ -194,8 +213,17 @@ runCampaign RunOptions {sourceRoot, outputDirectory, sourcePolicy, selectedCases
                   addCaseDetails caseId "changes" (changesJSON editEvidence)
                   (buildReport, buildEvidence) <- runStage definition hooks "candidate" workspace Build (commands Map.! build)
                   when (stagePassed buildReport buildEvidence && needsTest expectation) $ forM_ test $ \testId -> do
-                    _ <- runStage definition hooks "candidate" workspace Test (commands Map.! testId)
-                    pure ()
+                    (_, testEvidence) <- runStage definition hooks "candidate" workspace Test (commands Map.! testId)
+                    case (expectation, testEvidence, hooks) of
+                      (NamedTests expected RequireReplay, StageEvidence {outcome = Exited 1, replay = Just token, selection = SelectionEvidence {failedIds}}, CaseHooks {replayBuilder})
+                        | expected == failedIds && validateStageEvidence testEvidence == Right () -> do
+                            built <- maybe (pure (Right (Replay.replayCommand token (commands Map.! testId)))) (\builder -> builder token (commands Map.! testId)) replayBuilder
+                            case built of
+                              Left why -> addCaseDetails caseId "replayRejected" (String why)
+                              Right replayCommand -> do
+                                _ <- runStage definition hooks "candidate" workspace Replay replayCommand
+                                pure ()
+                      _ -> pure ()
               )
                 `withFinalizer` cleanup workspace
             case applied of
@@ -237,6 +265,9 @@ runCampaign RunOptions {sourceRoot, outputDirectory, sourcePolicy, selectedCases
   attempted <- try $ restore $ do
     Dir.createDirectoryIfMissing True (takeDirectory outputDirectory)
     Dir.createDirectory outputDirectory
+    identity <- Adapter.newRunIdentity outputDirectory
+    writeIORef runIdentity identity
+    modifyIORef' contextRef (\case Object o -> Object (KM.insert "runId" (String identity) o); other -> other)
     journal "selected"
     withSnapshot sourceRoot sourcePolicy $ \snapshot -> do
       modifyIORef' contextRef (addSnapshot snapshot)
@@ -269,15 +300,15 @@ needsTest _ = True
 witnessesFor :: Expectation -> Stage -> [Text]
 witnessesFor (Diagnostic s _ witness) stage | s == stage = [witness]
 witnessesFor (BuildRejection _ witness) Build = [witness]
-witnessesFor (CrashProbe _ witness) Test = [witness]
 witnessesFor _ _ = []
 
 stagePassed :: ProcessReport -> StageEvidence -> Bool
 stagePassed ProcessReport {errors} evidence@StageEvidence {outcome} = outcome == Exited 0 && null errors && validateStageEvidence evidence == Right ()
 
-baselineSelection :: Expectation -> StageEvidence -> Bool
-baselineSelection (NamedTests expected _) StageEvidence {selection = SelectionEvidence {selected, executed, executedIds, failedIds, skippedIds}} =
+baselineSelection :: CaseDefinition -> StageEvidence -> Bool
+baselineSelection CaseDefinition {expectation = NamedTests expected _} StageEvidence {selection = SelectionEvidence {selected, executed, executedIds, failedIds, skippedIds}} =
   maybe False (> 0) selected && maybe False (> 0) executed && expected `Set.isSubsetOf` executedIds && Set.null failedIds && Set.null (expected `Set.intersection` skippedIds)
+baselineSelection CaseDefinition {evidenceMode = StructuredTestsV1} StageEvidence {selection = SelectionEvidence {selected, executed, failedIds}} = maybe False (> 0) selected && maybe False (> 0) executed && Set.null failedIds
 baselineSelection _ _ = True
 
 enhance :: CaseHooks -> StageEvidence -> IO StageEvidence
@@ -288,6 +319,56 @@ enhance CaseHooks {customEvidence = Just hook} evidence@(StageEvidence s o text 
   case supplied of
     Left why -> pure (StageEvidence s o text True (SelectionEvidence Nothing Nothing Nothing Set.empty Set.empty Set.empty [why]) Nothing duration logs)
     Right StageEvidence {selection, replay} -> pure (StageEvidence s o text unavailable selection replay duration logs)
+
+isCrash :: Expectation -> Bool
+isCrash CrashProbe {} = True
+isCrash _ = False
+
+reservedEnvironment :: [String]
+reservedEnvironment = ["HENI_EVIDENCE_FILE", "HENI_RUN_ID", "HENI_CASE_ID", "HENI_STAGE", "HENI_ROLE", "HENI_ATTEMPT", "HENI_SELECTOR", "HENI_REPLAY_TOKEN", "HENI_REPLAY_GENERATOR"]
+
+withEnvironment :: [(String, String)] -> Command -> Command
+withEnvironment additions (Command exe args sensitive working env budget output) =
+  Command exe args sensitive working (additions ++ filter (\(key, _) -> key `notElem` map fst additions) env) budget output
+
+-- Protocol evidence is authoritative. A custom observer can reject it, but cannot
+-- replace a framework's actual execution or replay membership.
+observeStructured :: CaseHooks -> StageEvidence -> IO StageEvidence
+observeStructured CaseHooks {customEvidence = Nothing} evidence = pure evidence
+observeStructured _ evidence@StageEvidence {outcome} | outcome `elem` [Timeout, Cancelled] = pure evidence
+observeStructured CaseHooks {customEvidence = Just hook} evidence@(StageEvidence s o text _ selection replay duration logs) =
+  hook evidence >>= \case
+    Right _ -> pure evidence
+    Left why -> pure (StageEvidence s o text True (addSelectionError why selection) replay duration logs)
+
+addSelectionError :: Text -> SelectionEvidence -> SelectionEvidence
+addSelectionError why (SelectionEvidence d s e ids failed skipped errors) = SelectionEvidence d s e ids failed skipped (errors ++ [why])
+
+normalizeAttempt :: IORef (Maybe Text) -> CaseDefinition -> Maybe Adapter.EvidenceAttempt -> StageEvidence -> IO StageEvidence
+normalizeAttempt _ _ Nothing evidence = pure evidence
+normalizeAttempt producerIdentity CaseDefinition {expectation, evidenceMode} (Just attempt@Adapter.EvidenceAttempt {outputRoot, role}) evidence@(StageEvidence s o text unavailable selection replay duration logs) = do
+  let addArtifact relative = do
+        exists <- Dir.doesFileExist (outputRoot ++ "/" ++ relative)
+        pure [relative | exists]
+  protocolArtifacts <- if evidenceMode == StructuredTestsV1 then addArtifact (Adapter.evidenceRelativePath attempt) else pure []
+  probeArtifacts <- if isCrash expectation then addArtifact (Crash.probeRelativePath attempt) else pure []
+  let artifacts = logs ++ protocolArtifacts ++ probeArtifacts
+  if o `elem` [Timeout, Cancelled]
+    then pure (StageEvidence s o text unavailable selection replay duration artifacts)
+    else case expectation of
+      CrashProbe _ probe -> do
+        valid <- Crash.readCrashProbe attempt probe
+        pure (StageEvidence s o (either (const "") (const probe) valid) unavailable selection replay duration artifacts)
+      _
+        | evidenceMode == StructuredTestsV1 ->
+            Adapter.readEvidence attempt >>= \case
+              Left why -> pure (StageEvidence s o text True (addSelectionError why unknownSelection) Nothing duration artifacts)
+              Right (selected, replayed, producer) -> do
+                expected <- readIORef producerIdentity
+                if role == "baseline" then writeIORef producerIdentity (Just producer) else pure ()
+                let normalized = if role /= "baseline" && expected /= Just producer then addSelectionError "reporter version changed after baseline" selected else selected
+                pure (StageEvidence s o text unavailable normalized replayed duration artifacts)
+      _ -> pure evidence
 
 initialMetadata :: Campaign -> [(CaseDefinition, CaseHooks)] -> Value
 initialMetadata (Campaign commands _) selected =

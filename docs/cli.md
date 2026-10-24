@@ -57,8 +57,11 @@ values are redacted; sensitiveArguments lists zero-based argv indexes to redact.
 
 The [manifest schema](../schemas/manifest-v1.schema.json) defines wire shape;
 the decoder also checks semantic references and edit/expectation constraints.
-Generic diagnostic, intentional build-rejection and unchanged controls work now.
-Custom Haskell functions cannot be serialized. Named protocol adapters, replay,
-attempt-bound crash probes and resource options are rejected until their owners
-implement the corresponding execution paths. Unsupported features never silently
+Generic diagnostics, intentional build rejection, unchanged controls, named-test
+protocol adapters, required replay and attempt-bound crash probes are supported.
+Custom Haskell functions cannot be serialized. Resource options remain reserved
+until the scheduling contract is implemented. Unsupported features never silently
 fall back to ordinary diagnostic matching.
+
+Named-test adapters, required replay and explicit crash probes are described in
+[adapter contracts](design/adapters.md), with runnable manifests in examples/adapters.

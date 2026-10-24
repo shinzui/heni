@@ -12,7 +12,8 @@ IDs and a relative target, construct a `CaseDefinition`, validate it, then
 classify evidence. That fixture uses synthetic evidence only. It covers a
 replacement, textual patch catalogue, generated-code hook, and external
 diagnostic. The model also expresses named tests, replay, build rejection,
-unchanged controls and signal probes. No real runner is implemented by EP-1.
+unchanged controls and signal probes. The real campaign path is demonstrated in
+`examples/library/` and the optional adapter packages.
 
 `CaseDefinition` contains serializable data. `CaseHooks` holds trusted IO
 functions separately. `WorkspaceOps` supplies checked reads and writes; the
@@ -22,7 +23,7 @@ evidence callback returns evidence or a rejection; it cannot return a verdict.
 The execution owner must preserve actual process outcome and all validity
 gates when interpreting custom evidence.
 
-The target execution API is:
+The execution API is:
 
 ```haskell
 runCampaign :: RunOptions -> Campaign -> IO RunResult
@@ -47,3 +48,8 @@ tests and this contract together. The public import closure intentionally has
 no generic-lens label orphan; `test/api/Labels.hs` compiles a consumer's own
 overloaded label instance. The internal prelude exports only foundational
 types, following the scoped adaptation in [the boundary ADR](../adr/1-framework-neutral-core.md).
+
+`CaseDefinition.evidenceMode` declares generic commands or the strong v1
+protocol. `CaseHooks.replayBuilder` can build a native framework replay command;
+strong protocol facts remain authoritative even with a custom observer. See
+[adapter contracts](adapters.md) for named identities, replay and fresh probes.

@@ -111,11 +111,19 @@ parsePortableCase value = do
         forM_ edits $ withObject "edit" $ \edit -> when (KM.lookup "occurrences" edit == Just Null) (fail "occurrences cannot be null")
     )
     value
-  definition@CaseDefinition {edits, expectation} <- parseCase value
+  withObject
+    "case"
+    ( \o -> case KM.lookup "expect" o of
+        Just (Object expected) | KM.lookup "replayRequired" expected == Just Null -> fail "replayRequired cannot be null"
+        _ -> pure ()
+    )
+    value
+  definition@CaseDefinition {edits, expectation, evidenceMode} <- parseCase value
   forM_ edits $ \case CustomEdit {} -> fail "custom Haskell hooks cannot be serialized in manifests"; _ -> pure ()
   case expectation of
-    NamedTests {} -> fail "named-test adapters are not available in this portable version yet"
-    CrashProbe {} -> fail "attempt-bound crash probes are not available in this portable version yet"
+    NamedTests {} | evidenceMode /= StructuredTestsV1 -> fail "named-tests requires adapter: heni-v1"
+    NamedTests {} -> pure definition
+    CrashProbe {} -> pure definition
     _ -> pure definition
 
 -- | Read with source paths anchored to the manifest location, not the caller's cwd.

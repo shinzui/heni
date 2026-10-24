@@ -156,7 +156,7 @@ uniqueSet :: (Ord a) => [a] -> Parser (Set.Set a)
 uniqueSet xs = let s = Set.fromList xs in if Set.size s == length xs then pure s else fail "duplicate set member"
 
 caseJSON :: CaseDefinition -> Value
-caseJSON CaseDefinition {caseId, description, tags, edits, build, test, selector, expectation} =
+caseJSON CaseDefinition {caseId, description, tags, edits, build, test, selector, expectation, evidenceMode} =
   object
     [ "id" .= caseIdText caseId,
       "description" .= description,
@@ -165,11 +165,12 @@ caseJSON CaseDefinition {caseId, description, tags, edits, build, test, selector
       "build" .= commandIdText build,
       "test" .= fmap commandIdText test,
       "selector" .= selector,
-      "expect" .= expectationJSON expectation
+      "expect" .= expectationJSON expectation,
+      "adapter" .= (case evidenceMode of GenericCommands -> Null; StructuredTestsV1 -> String "heni-v1")
     ]
 
 parseCase :: Value -> Parser CaseDefinition
-parseCase = strictObject "case" ["id", "description", "tags", "edits", "build", "test", "selector", "expect"] $ \o -> do
+parseCase = strictObject "case" ["id", "description", "tags", "edits", "build", "test", "selector", "expect", "adapter"] $ \o -> do
   caseId <- o .: "id" >>= checked . mkCaseId
   description <- o .: "description"
   tags <- o .:? "tags" .!= [] >>= uniqueSet
@@ -178,7 +179,12 @@ parseCase = strictObject "case" ["id", "description", "tags", "edits", "build", 
   test <- o .:? "test" >>= traverse (checked . mkCommandId)
   selector <- o .:? "selector"
   expectation <- o .: "expect" >>= parseExpectation
-  let definition = CaseDefinition {caseId, description, tags, edits, build, test, selector, expectation}
+  evidenceMode <-
+    o .:? "adapter" >>= \case
+      Nothing -> pure GenericCommands
+      Just ("heni-v1" :: Text) -> pure StructuredTestsV1
+      Just _ -> fail "unsupported adapter; expected heni-v1"
+  let definition = CaseDefinition {caseId, description, tags, edits, build, test, selector, expectation, evidenceMode}
   checked (validateCase definition)
   pure definition
 

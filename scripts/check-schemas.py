@@ -1,6 +1,7 @@
 """Validate published JSON Schemas and real emitted fixtures (development only)."""
 import json
 import sys
+import os
 from pathlib import Path
 from jsonschema import Draft202012Validator
 
@@ -36,3 +37,11 @@ for argument in sys.argv[1:]:
     invalid = dict(value, unexpected=True)
     assert not validator.is_valid(invalid), "unknown report field accepted"
 print("Manifest corpus, report schema and emitted fixtures passed")
+
+evidence_schema = json.loads((root / "schemas/test-evidence-v1.schema.json").read_text())
+Draft202012Validator.check_schema(evidence_schema)
+evidence_validator = Draft202012Validator(evidence_schema)
+if os.environ.get("HENI_SCHEMA_EVIDENCE"):
+    for line in Path(os.environ["HENI_SCHEMA_EVIDENCE"]).read_text().splitlines():
+        evidence_validator.validate(json.loads(line, object_pairs_hook=unique_object))
+    print("Emitted test evidence schema passed")

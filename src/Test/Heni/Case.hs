@@ -11,6 +11,7 @@ module Test.Heni.Case
     selectedCaseIds,
     ConfigError (..),
     CaseDefinition (..),
+    EvidenceMode (..),
     Edit (..),
     CaseHooks (..),
     WorkspaceOps (..),
@@ -25,12 +26,13 @@ import Test.Heni.Internal.Model
 
 -- | Reject invalid expectations and edits before invoking any command.
 validateCase :: CaseDefinition -> Either ConfigError ()
-validateCase CaseDefinition {description, edits, test, expectation, selector}
+validateCase CaseDefinition {description, edits, test, expectation, selector, evidenceMode}
   | Text.null (Text.strip description) = bad "description" "expected an explanation of the fault"
   | maybe False (Text.null . Text.strip) selector = bad "selector" "empty selector"
   | expectation /= Control && null edits = bad "edits" "mutation requires edits"
   | expectation == Control && not (null edits) = bad "edits" "controls must explicitly leave source unchanged"
   | requiresTest expectation && test == Nothing = bad "test" "expectation requires a test command"
+  | CrashProbe {} <- expectation, evidenceMode == StructuredTestsV1 = bad "adapter" "crash probes use their dedicated attempt-bound channel"
   | otherwise = mapM_ validateEdit edits >> validateExpectation expectation
   where
     bad f m = Left (ConfigError f m)

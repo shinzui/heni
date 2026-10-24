@@ -286,6 +286,54 @@
             "kind"
           ],
           "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "named-tests"
+            },
+            "failures": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              },
+              "uniqueItems": true,
+              "minItems": 1
+            },
+            "replayRequired": {
+              "type": "boolean",
+              "default": false
+            }
+          },
+          "required": [
+            "kind",
+            "failures"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "crash"
+            },
+            "signal": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "probe": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": [
+            "kind",
+            "signal",
+            "probe"
+          ],
+          "additionalProperties": false
         }
       ]
     },
@@ -343,6 +391,12 @@
         },
         "expect": {
           "$ref": "#/$defs/expectation"
+        },
+        "adapter": {
+          "enum": [
+            null,
+            "heni-v1"
+          ]
         }
       },
       "required": [
@@ -416,6 +470,75 @@
               "test": {
                 "type": "string",
                 "pattern": "^[A-Za-z0-9_.-]+$"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "expect": {
+                "properties": {
+                  "kind": {
+                    "enum": [
+                      "named-tests",
+                      "crash"
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "test"
+            ],
+            "properties": {
+              "test": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "expect": {
+                "properties": {
+                  "kind": {
+                    "const": "named-tests"
+                  }
+                }
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "adapter"
+            ],
+            "properties": {
+              "adapter": {
+                "const": "heni-v1"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "expect": {
+                "properties": {
+                  "kind": {
+                    "const": "crash"
+                  }
+                }
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "adapter": {
+                "type": "null"
               }
             }
           }

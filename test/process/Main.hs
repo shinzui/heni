@@ -42,7 +42,7 @@ suite = bracket (Dir.getTemporaryDirectory >>= \tmp -> mkdtemp (tmp </> "heni-pr
     missing <- runCommand (opts "missing") workspace Test (Command "heni-definitely-absent" [] Set.empty Nothing [] (checked (mkStageBudget 100000)) (OutputPolicy 100))
     assert' "launch failure" (case outcomeOf missing of LaunchFailed {} -> True; _ -> False)
     exited <- run "exit" ["exit", "1"] 1000000
-    assert' "exit differs from signal" (outcomeOf exited == Exited 1)
+    assert' ("exit differs from signal: " ++ show (outcomeOf exited)) (outcomeOf exited == Exited 1)
     signaled <- run "signal" ["signal"] 1000000
     assert' "actual signal" (outcomeOf signaled == Signaled (fromIntegral sigABRT))
     timed <- run "timeout" ["sleep"] 50000

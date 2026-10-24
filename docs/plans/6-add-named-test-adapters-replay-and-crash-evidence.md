@@ -11,6 +11,12 @@ provenance:
     model: "gpt-6-astra"
     harness: "codex-cli"
     at: 2026-10-24T14:33:08Z
+  revisions:
+    - model: "gpt-6.1-sol"
+      harness: "codex-cli"
+      at: 2026-10-24T16:04:59Z
+      mode: "implement"
+      note: "Implement attempt-bound evidence protocol, optional reporters, property replay and fresh crash probes"
 ---
 
 # Add named-test adapters replay and crash evidence
@@ -28,27 +34,64 @@ A maintainer can require a particular test to fail, reproduce a property counter
 ## Progress
 
 
-- [ ] M1: A versioned test-evidence protocol proves discovery, execution, and named failure in real subprocess fixtures.
-- [ ] M2: Optional Tasty and Hspec reporters provide the same evidence through existing suites.
-- [ ] M3: Property replay and declared crash probes preserve original/replay observations and reject wrong detections.
+- [x] (2026-10-24) M1: A versioned test-evidence protocol proves discovery, execution, and named failure in real subprocess fixtures.
+- [x] (2026-10-24) M2: Optional Tasty and Hspec reporters provide the same evidence through existing suites.
+- [x] (2026-10-24) M3: Property replay and declared crash probes preserve original/replay observations and reject wrong detections.
 
 
 ## Surprises & Discoveries
 
+2026-10-24: Tasty exposes exact selected tree/status order, while the stable Hspec
+formatter reports completed selected IDs but cannot independently enumerate all
+unfiltered examples. Both reporters explicitly preserve unknown discovery;
+identity and execution checks use the exact selected IDs. Hspec partial
+fail-fast completion is rejected by comparing its expected count.
 
-None yet.
+2026-10-24: QuickCheck supplies a native seed/size replay token. The initial
+helper supports one explicitly selected replay property per attempt, recording
+version and generator arguments; other native formats use the typed builder.
+
 
 
 ## Decision Log
 
 
-No implementation decisions yet; the approach below is the initial proposed contract.
+2026-10-24: Keep the dedicated attempt-bound channel authoritative. Typed
+observers may reject strong protocol facts but cannot overwrite them. A reporter
+exception after completion appends invalidation instead of deleting evidence.
+See [ADR 7](../adr/7-attempt-bound-test-evidence.md).
+
+2026-10-24: Use dedicated reporters during Heni attempts, retaining native
+filters/options and ordinary direct execution outside Heni. Hspec history
+reruns are rejected because they can change an attempt's selected set.
 
 
 ## Outcomes & Retrospective
 
 
-To be filled during implementation, including acceptance evidence, remaining limits, and friction triage.
+Accepted on macOS/GHC 9.12.4. The standalone producer suite passed actual
+baseline/candidate/replay supervision with intended/wrong/skipped/setup,
+stale/partial/count/version rejection, zero selection, opaque token mismatch,
+replay timeout and post-completion invalidation. Fresh signal probes passed
+only with the expected native signal; stale/missing/wrong-signal/numeric-exit
+and timeout negatives were preserved.
+
+Both optional package tests passed ordinary direct framework execution, exact
+named failure, wrong assertion, setup exception, empty selection, combined
+native/Heni filters and CLI manifest parity. Hspec additionally passed pending
+selection, dry-run rejection, real QuickCheck reproduction and an invalid
+native replay token. Core unit/workspace/process/runner/CLI regression suites
+passed serially. The emitted evidence and report schema checks and shared
+manifest corpus passed. Source/registry compatibility is recorded in
+`docs/design/compatibility.md`; ADR 7 records the durable contract.
+
+The first broad concurrent build/test run exceeded a process fixture's short
+startup budget; the same suite passed with serial Cabal test jobs, now explicit
+in CI. Linux execution remains part of the final release matrix gate in
+`docs/plans/9-validate-portable-packages-and-prepare-the-hackage-release.md`.
+There was no external-surface friction to triage for this child. Known limits
+are unknown unfiltered discovery, one replay property per attempt, and no
+Hspec history/dry-run execution inside an evidence attempt.
 
 
 ## Context and Orientation

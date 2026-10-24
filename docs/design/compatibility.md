@@ -48,3 +48,16 @@ stream; token validation rejects duplicate keys before map conversion. The
 development-only schema checker uses jsonschema 4.26.0, verified against PyPI
 and upstream `v4.26.0` at `c87a92202e986be7e3ae0db992cdc2608bbfd815`.
 The Haskell runtime does not depend on that Python tooling.
+
+Optional reporters were checked against released Tasty 1.5.5, tasty-hunit
+0.10.2, Hspec/hspec-core/hspec-api 2.11.18 and QuickCheck 2.19.0.0. Mori's
+mori://UnkindPartition/tasty source supplied public runner/fold/ingredient APIs.
+Its newest core tag is `core-1.5.4` (`0394c73e647834829e7f500c9dab0be3ff9e4f11`),
+so the actual Hackage 1.5.5 archive was also inspected rather than assuming tag
+parity. `hunit-0.10.2` is `298f69b99b7f1561c93e0eff87dde57be5bbb079`.
+Hspec and QuickCheck had no owning Mori corpus entries; authoritative source
+at Hspec `2.11.18` (`96242bf996b3eccc10cfe3406c16ffcb519b422d`) and
+QuickCheck `2.19` (`3d8fe8686024760006ca1ca656cbdd82cd71f11e`) supplied
+the stable V2 formatter and native replay APIs. Hackage preferred versions
+were checked separately. STM 2.5.3.1 was inspected at mori://haskell/stm and
+verified against `v2.5.3.1` (`48bfb8812633e9b9d4fd1cdeb4c795cefb8f8014`).

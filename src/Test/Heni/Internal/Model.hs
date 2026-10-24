@@ -133,7 +133,11 @@ data Expectation
   | Control
   deriving stock (Eq, Show, Generic)
 
--- | Serializable case data; IO functions are stored separately in 'CaseHooks'.
+-- | Declared framework-neutral evidence transport.
+data EvidenceMode = GenericCommands | StructuredTestsV1
+  deriving stock (Eq, Show, Generic)
+
+-- | Portable definition, including its declared evidence transport.
 data CaseDefinition = CaseDefinition
   { caseId :: !CaseId,
     description :: !Text,
@@ -142,7 +146,8 @@ data CaseDefinition = CaseDefinition
     build :: !CommandId,
     test :: !(Maybe CommandId),
     selector :: !(Maybe Text),
-    expectation :: !Expectation
+    expectation :: !Expectation,
+    evidenceMode :: !EvidenceMode
   }
   deriving stock (Eq, Show, Generic)
 
@@ -157,12 +162,13 @@ data WorkspaceOps = WorkspaceOps
 -- | Haskell-only extension points. Returned evidence still passes all validity gates.
 data CaseHooks = CaseHooks
   { customEdits :: ![(Text, WorkspaceOps -> IO ())],
-    customEvidence :: !(Maybe (StageEvidence -> IO (Either Text StageEvidence)))
+    customEvidence :: !(Maybe (StageEvidence -> IO (Either Text StageEvidence))),
+    replayBuilder :: !(Maybe (ReplayEvidence -> Command -> IO (Either Text Command)))
   }
 
 -- | No custom behavior.
 noHooks :: CaseHooks
-noHooks = CaseHooks [] Nothing
+noHooks = CaseHooks [] Nothing Nothing
 
 -- | Counts are optional: unknown is different from zero. IDs identify attribution.
 data SelectionEvidence = SelectionEvidence

@@ -11,7 +11,7 @@ in  Schema.Project::{
       , language = Schema.Language.Haskell
       , lifecycle = Schema.Lifecycle.Experimental
       , description = Some
-          "Haskell library and CLI for running deliberate mutations and verifying that tests catch the intended faults. Specification stage; intended for Hackage publication."
+          "Haskell library and CLI for running deliberate mutations and verifying that tests catch the intended faults. Initial implementation; release validation in progress."
       , domains = [ "testing", "mutation-testing", "developer-tools" ]
       , owners = [ "shinzui" ]
       }
@@ -22,16 +22,14 @@ in  Schema.Project::{
         , localPath = Some "."
         }
       ]
-    , -- Planned public package identities; source/build definitions follow
-      -- implementation. No source directories or released versions are claimed.
-      packages =
+    , packages =
       [ Schema.Package::{
         , name = "heni"
         , type = Schema.PackageType.Library
         , language = Schema.Language.Haskell
         , visibility = Schema.Visibility.Public
         , description = Some
-            "Planned public Test.Heni library: mutation cases, isolated execution, precise verdicts, and evidence reports."
+            "Public Test.Heni library: mutation cases, isolated execution, precise verdicts, and evidence reports."
         }
       , Schema.Package::{
         , name = "heni-cli"
@@ -39,7 +37,21 @@ in  Schema.Project::{
         , language = Schema.Language.Haskell
         , visibility = Schema.Visibility.Public
         , description = Some
-            "Planned Hackage CLI package providing the heni executable over the shared library."
+            "Unreleased Hackage CLI package providing the heni executable over the shared library."
+        }
+      , Schema.Package::{
+        , name = "heni-tasty"
+        , type = Schema.PackageType.Library
+        , language = Schema.Language.Haskell
+        , visibility = Schema.Visibility.Public
+        , description = Some "Optional Tasty reporter for attempt-bound named test evidence."
+        }
+      , Schema.Package::{
+        , name = "heni-hspec"
+        , type = Schema.PackageType.Library
+        , language = Schema.Language.Haskell
+        , visibility = Schema.Visibility.Public
+        , description = Some "Optional Hspec formatter and native QuickCheck replay helper."
         }
       ]
     , docs =

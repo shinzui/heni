@@ -29,4 +29,5 @@ exampleCampaign = checked (mkCampaign commands [(c, noHooks) | c <- cases])
         (Just (commandId "test"))
         Nothing
         (Diagnostic Test 1 "rejects full capacity: FAIL")
+        GenericCommands
     cases = [define "guard-bypass" "used < limit" "True", define "survivor" "baseline" "mutant", define "compile-error" "used < limit" "missingCapacityGuard"]

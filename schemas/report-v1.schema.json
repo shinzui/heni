@@ -712,6 +712,10 @@
             "policy"
           ],
           "additionalProperties": false
+        },
+        "runId": {
+          "type": "string",
+          "minLength": 1
         }
       },
       "required": [

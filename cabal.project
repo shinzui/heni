@@ -1,1 +1,1 @@
-packages: . heni-cli
+packages: . heni-cli adapters/heni-tasty adapters/heni-hspec

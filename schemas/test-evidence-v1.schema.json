@@ -1,0 +1,691 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/shinzui/heni/master/schemas/test-evidence-v1.schema.json",
+  "title": "Heni test-evidence v1 JSON Lines record",
+  "description": "Each line is one record; the core additionally validates attempt identity, sequence, lifecycle, membership and completion counts.",
+  "oneOf": [
+    {
+      "type": "object",
+      "properties": {
+        "protocolVersion": {
+          "const": 1
+        },
+        "runId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "caseId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_.-]+$"
+        },
+        "stage": {
+          "enum": [
+            "setup",
+            "build",
+            "test",
+            "replay",
+            "teardown"
+          ]
+        },
+        "role": {
+          "enum": [
+            "baseline",
+            "candidate"
+          ]
+        },
+        "attempt": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sequence": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "kind": {
+          "const": "begin"
+        },
+        "producerVersion": {
+          "type": "string",
+          "minLength": 1
+        },
+        "discoveredIds": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              },
+              "uniqueItems": true
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "selectedIds": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        }
+      },
+      "required": [
+        "protocolVersion",
+        "runId",
+        "caseId",
+        "stage",
+        "role",
+        "attempt",
+        "sequence",
+        "kind",
+        "producerVersion",
+        "discoveredIds",
+        "selectedIds"
+      ],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "protocolVersion": {
+          "const": 1
+        },
+        "runId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "caseId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_.-]+$"
+        },
+        "stage": {
+          "enum": [
+            "setup",
+            "build",
+            "test",
+            "replay",
+            "teardown"
+          ]
+        },
+        "role": {
+          "enum": [
+            "baseline",
+            "candidate"
+          ]
+        },
+        "attempt": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sequence": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "kind": {
+          "const": "started"
+        },
+        "testId": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "protocolVersion",
+        "runId",
+        "caseId",
+        "stage",
+        "role",
+        "attempt",
+        "sequence",
+        "kind",
+        "testId"
+      ],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "protocolVersion": {
+          "const": 1
+        },
+        "runId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "caseId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_.-]+$"
+        },
+        "stage": {
+          "enum": [
+            "setup",
+            "build",
+            "test",
+            "replay",
+            "teardown"
+          ]
+        },
+        "role": {
+          "enum": [
+            "baseline",
+            "candidate"
+          ]
+        },
+        "attempt": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sequence": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "kind": {
+          "const": "passed"
+        },
+        "testId": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "protocolVersion",
+        "runId",
+        "caseId",
+        "stage",
+        "role",
+        "attempt",
+        "sequence",
+        "kind",
+        "testId"
+      ],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "protocolVersion": {
+          "const": 1
+        },
+        "runId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "caseId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_.-]+$"
+        },
+        "stage": {
+          "enum": [
+            "setup",
+            "build",
+            "test",
+            "replay",
+            "teardown"
+          ]
+        },
+        "role": {
+          "enum": [
+            "baseline",
+            "candidate"
+          ]
+        },
+        "attempt": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sequence": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "kind": {
+          "const": "failed"
+        },
+        "testId": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "protocolVersion",
+        "runId",
+        "caseId",
+        "stage",
+        "role",
+        "attempt",
+        "sequence",
+        "kind",
+        "testId"
+      ],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "protocolVersion": {
+          "const": 1
+        },
+        "runId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "caseId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_.-]+$"
+        },
+        "stage": {
+          "enum": [
+            "setup",
+            "build",
+            "test",
+            "replay",
+            "teardown"
+          ]
+        },
+        "role": {
+          "enum": [
+            "baseline",
+            "candidate"
+          ]
+        },
+        "attempt": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sequence": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "kind": {
+          "const": "skipped"
+        },
+        "testId": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "protocolVersion",
+        "runId",
+        "caseId",
+        "stage",
+        "role",
+        "attempt",
+        "sequence",
+        "kind",
+        "testId"
+      ],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "protocolVersion": {
+          "const": 1
+        },
+        "runId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "caseId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_.-]+$"
+        },
+        "stage": {
+          "enum": [
+            "setup",
+            "build",
+            "test",
+            "replay",
+            "teardown"
+          ]
+        },
+        "role": {
+          "enum": [
+            "baseline",
+            "candidate"
+          ]
+        },
+        "attempt": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sequence": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "kind": {
+          "const": "setup-failed"
+        },
+        "testId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "message": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "protocolVersion",
+        "runId",
+        "caseId",
+        "stage",
+        "role",
+        "attempt",
+        "sequence",
+        "kind",
+        "testId",
+        "message"
+      ],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "protocolVersion": {
+          "const": 1
+        },
+        "runId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "caseId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_.-]+$"
+        },
+        "stage": {
+          "enum": [
+            "setup",
+            "build",
+            "test",
+            "replay",
+            "teardown"
+          ]
+        },
+        "role": {
+          "enum": [
+            "baseline",
+            "candidate"
+          ]
+        },
+        "attempt": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sequence": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "kind": {
+          "const": "setup-error"
+        },
+        "message": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "protocolVersion",
+        "runId",
+        "caseId",
+        "stage",
+        "role",
+        "attempt",
+        "sequence",
+        "kind",
+        "message"
+      ],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "protocolVersion": {
+          "const": 1
+        },
+        "runId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "caseId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_.-]+$"
+        },
+        "stage": {
+          "enum": [
+            "setup",
+            "build",
+            "test",
+            "replay",
+            "teardown"
+          ]
+        },
+        "role": {
+          "enum": [
+            "baseline",
+            "candidate"
+          ]
+        },
+        "attempt": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sequence": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "kind": {
+          "const": "replay"
+        },
+        "replay": {
+          "type": "object",
+          "properties": {
+            "token": {
+              "type": "string",
+              "minLength": 1
+            },
+            "generator": {
+              "type": "string",
+              "minLength": 1
+            },
+            "failures": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              },
+              "uniqueItems": true,
+              "minItems": 1
+            }
+          },
+          "required": [
+            "token",
+            "generator",
+            "failures"
+          ],
+          "additionalProperties": false
+        },
+        "counterexample": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "protocolVersion",
+        "runId",
+        "caseId",
+        "stage",
+        "role",
+        "attempt",
+        "sequence",
+        "kind",
+        "replay",
+        "counterexample"
+      ],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "protocolVersion": {
+          "const": 1
+        },
+        "runId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "caseId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_.-]+$"
+        },
+        "stage": {
+          "enum": [
+            "setup",
+            "build",
+            "test",
+            "replay",
+            "teardown"
+          ]
+        },
+        "role": {
+          "enum": [
+            "baseline",
+            "candidate"
+          ]
+        },
+        "attempt": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sequence": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "kind": {
+          "const": "complete"
+        },
+        "counts": {
+          "type": "object",
+          "properties": {
+            "discovered": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "selected": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "executed": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "passed": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "failed": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "skipped": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "setupErrors": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          "required": [
+            "discovered",
+            "selected",
+            "executed",
+            "passed",
+            "failed",
+            "skipped",
+            "setupErrors"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "protocolVersion",
+        "runId",
+        "caseId",
+        "stage",
+        "role",
+        "attempt",
+        "sequence",
+        "kind",
+        "counts"
+      ],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "protocolVersion": {
+          "const": 1
+        },
+        "runId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "caseId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_.-]+$"
+        },
+        "stage": {
+          "enum": [
+            "setup",
+            "build",
+            "test",
+            "replay",
+            "teardown"
+          ]
+        },
+        "role": {
+          "enum": [
+            "baseline",
+            "candidate"
+          ]
+        },
+        "attempt": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sequence": {
+          "const": -1
+        },
+        "kind": {
+          "const": "invalidated"
+        },
+        "message": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "protocolVersion",
+        "runId",
+        "caseId",
+        "stage",
+        "role",
+        "attempt",
+        "sequence",
+        "kind",
+        "message"
+      ],
+      "additionalProperties": false
+    }
+  ]
+}

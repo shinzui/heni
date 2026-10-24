@@ -27,6 +27,9 @@ extra-source-files:
   scripts/check-schemas.py
 
 data-files:
+  examples/adapters/*.json
+  examples/adapters/README.md
+  examples/adapters/input
   examples/minimal/*.cabal
   examples/minimal/cabal.project
   examples/minimal/heni.json
@@ -70,12 +73,15 @@ library
 
   exposed-modules:
     Test.Heni
+    Test.Heni.Adapter
     Test.Heni.Case
     Test.Heni.Command
+    Test.Heni.Crash
     Test.Heni.Edit
     Test.Heni.Expectation
     Test.Heni.Manifest
     Test.Heni.Process
+    Test.Heni.Replay
     Test.Heni.Report
     Test.Heni.Result
     Test.Heni.Runner
@@ -97,6 +103,17 @@ executable heni-fixture
     directory,
     filepath,
     process,
+    unix,
+
+  ghc-options: -threaded
+
+executable heni-evidence-fixture
+  import: common
+  hs-source-dirs: test/evidence-fixture
+  main-is: Main.hs
+  build-depends:
+    bytestring,
+    heni,
     unix,
 
   ghc-options: -threaded
@@ -146,6 +163,22 @@ test-suite heni-process
     unix,
 
   build-tool-depends: heni:heni-fixture
+  ghc-options: -threaded
+
+test-suite heni-adapter
+  import: common
+  type: exitcode-stdio-1.0
+  hs-source-dirs: test/adapter
+  main-is: Main.hs
+  build-depends:
+    aeson,
+    bytestring,
+    directory,
+    filepath,
+    heni,
+    unix,
+
+  build-tool-depends: heni:heni-evidence-fixture
   ghc-options: -threaded
 
 test-suite heni-unit

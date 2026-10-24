@@ -39,6 +39,7 @@ caseWith edits =
     (Just (checked (mkCommandId "test")))
     Nothing
     (Diagnostic Test 1 "witness")
+    GenericCommands
 
 withTree :: (FilePath -> IO a) -> IO a
 withTree action = bracket (Dir.getTemporaryDirectory >>= \tmp -> mkdtemp (tmp </> "heni-test-")) Dir.removePathForcibly action
@@ -89,7 +90,7 @@ main = withTree $ \source -> do
     assert' "creation/deletion recorded" (created == Right 2)
     duplicateCreate <- withEditedWorkspace gitRunner noHooks snapshot (caseWith [Create (target "dirty.txt") "created"]) (\_ _ -> pure ())
     assert' "creation precondition" (case duplicateCreate of Left InvalidEdit {} -> True; _ -> False)
-    let control = case caseWith [] of CaseDefinition i d ts es b t s _ -> CaseDefinition i d ts es b t s Control
+    let control = case caseWith [] of CaseDefinition i d ts es b t s _ mode -> CaseDefinition i d ts es b t s Control mode
     controlResult <- withEditedWorkspace gitRunner noHooks snapshot control (\_ (EditEvidence changes) -> pure (null changes))
     assert' "unchanged control accepted" (controlResult == Right True)
     withWorkspace snapshot $ \w -> do
@@ -120,7 +121,7 @@ main = withTree $ \source -> do
     assert' "all patch header paths checked" (case unsafePatch of Left InvalidEdit {} -> True; _ -> False)
     missingGit <- withEditedWorkspace (\_ _ -> throwIO (userError "git is unavailable")) noHooks snapshot (caseWith [Patch patch]) (\_ _ -> pure ())
     assert' "missing Git infrastructure capability" (case missingGit of Left EditInfrastructure {} -> True; _ -> False)
-    let hooks = CaseHooks [("cancel", \_ -> threadDelay 10000000)] Nothing
+    let hooks = CaseHooks [("cancel", \_ -> threadDelay 10000000)] Nothing Nothing
     cancelled <- timeout 20000 (withEditedWorkspace gitRunner hooks snapshot (caseWith [CustomEdit "cancel"]) (\_ _ -> pure ()))
     assert' "cancellation bounded" (case cancelled of Nothing -> True; _ -> False)
     withWorkspace snapshot (verifyWorkspace snapshot)
