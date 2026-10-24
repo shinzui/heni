@@ -1,6 +1,8 @@
 # Bundle Update Log
 
 ## 2026-10-24
+* **Update**: FRIC-3 accepted: Accepted the explicit integration boundary instead of a cyclic core build-tool dependency.
+* **Addition**: FRIC-3 records detour tooling friction with mori://haskell/cabal/packages/cabal-install: Cross-package CLI test tools create a Cabal dependency cycle
 * **Update**: FRIC-2 accepted: Accepted a local syntax workaround for the formatter AST mismatch.
 * **Addition**: FRIC-2 records detour tooling friction with https://github.com/fourmolu/fourmolu: Fourmolu rejects nested explicit case braces
 * **Update**: FRIC-1 accepted: Accepted documented upstream fallback for an absent corpus checkout.

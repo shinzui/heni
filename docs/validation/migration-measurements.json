@@ -1,0 +1,270 @@
+{
+  "operator": "automated Python observation of agent-authored fixtures; no human effort inference",
+  "method": "nonblank/noncomment physical lines inside named Legacy.hs regions; local wrapper line included; definitions subtracted",
+  "comparisonSharedOrchestrationLOC": 17,
+  "platform": {
+    "arch": "aarch64",
+    "compilerVersion": "9.12",
+    "os": "darwin"
+  },
+  "families": [
+    {
+      "family": "replacement",
+      "comparisonLocalOrchestrationLOC": 4,
+      "comparisonDefinitionLOC": 2,
+      "manifestLifecycleScaffoldingLOC": 0,
+      "retainedDomainBuildHelperLOC": 0,
+      "legacyIntendedCaught": true,
+      "legacyUnrelatedCompileAccepted": true,
+      "typedFreshSeconds": 100.067377,
+      "cliParallelReuseSeconds": 47.105884,
+      "wholeCampaignRepeatsPerCondition": 1,
+      "outcomes": [
+        "Caught",
+        "Survived",
+        "UnexpectedBuildFailure",
+        "Caught"
+      ],
+      "typedFresh": {
+        "baselineBuildInvocations": 4,
+        "baselineBuildTiming": {
+          "repeats": 4,
+          "minSeconds": 8.836197,
+          "maxSeconds": 9.027514,
+          "medianSeconds": 8.910768000000001
+        },
+        "sumBuildStageSeconds": 70.697988,
+        "sumAllStageSeconds": 100.009445
+      },
+      "cliParallelReuse": {
+        "baselineBuildInvocations": 2,
+        "baselineBuildTiming": {
+          "repeats": 2,
+          "minSeconds": 9.096244,
+          "maxSeconds": 9.131108,
+          "medianSeconds": 9.113676
+        },
+        "sumBuildStageSeconds": 52.13598,
+        "sumAllStageSeconds": 70.068589
+      },
+      "typedElapsedMinusStagesSeconds": 0.05793199999999388
+    },
+    {
+      "family": "patch-catalogue",
+      "comparisonLocalOrchestrationLOC": 4,
+      "comparisonDefinitionLOC": 2,
+      "manifestLifecycleScaffoldingLOC": 0,
+      "retainedDomainBuildHelperLOC": 0,
+      "legacyIntendedCaught": true,
+      "legacyUnrelatedCompileAccepted": null,
+      "typedFreshSeconds": 59.412925,
+      "cliParallelReuseSeconds": 30.661492,
+      "wholeCampaignRepeatsPerCondition": 1,
+      "outcomes": [
+        "Caught",
+        "Survived"
+      ],
+      "typedFresh": {
+        "baselineBuildInvocations": 2,
+        "baselineBuildTiming": {
+          "repeats": 2,
+          "minSeconds": 8.709212,
+          "maxSeconds": 9.054494,
+          "medianSeconds": 8.881853
+        },
+        "sumBuildStageSeconds": 35.634768,
+        "sumAllStageSeconds": 59.373957
+      },
+      "cliParallelReuse": {
+        "baselineBuildInvocations": 1,
+        "baselineBuildTiming": {
+          "repeats": 1,
+          "minSeconds": 8.835608,
+          "maxSeconds": 8.835608,
+          "medianSeconds": 8.835608
+        },
+        "sumBuildStageSeconds": 27.25745,
+        "sumAllStageSeconds": 46.281157
+      },
+      "typedElapsedMinusStagesSeconds": 0.03896800000000411
+    },
+    {
+      "family": "generated-code",
+      "comparisonLocalOrchestrationLOC": 5,
+      "comparisonDefinitionLOC": 2,
+      "manifestLifecycleScaffoldingLOC": 0,
+      "retainedDomainBuildHelperLOC": 16,
+      "legacyIntendedCaught": true,
+      "legacyUnrelatedCompileAccepted": null,
+      "typedFreshSeconds": 62.960805,
+      "cliParallelReuseSeconds": 31.536973,
+      "wholeCampaignRepeatsPerCondition": 1,
+      "outcomes": [
+        "Caught",
+        "Survived"
+      ],
+      "typedFresh": {
+        "baselineBuildInvocations": 2,
+        "baselineBuildTiming": {
+          "repeats": 2,
+          "minSeconds": 9.055222,
+          "maxSeconds": 9.373377,
+          "medianSeconds": 9.2142995
+        },
+        "sumBuildStageSeconds": 37.77156,
+        "sumAllStageSeconds": 62.877587
+      },
+      "cliParallelReuse": {
+        "baselineBuildInvocations": 1,
+        "baselineBuildTiming": {
+          "repeats": 1,
+          "minSeconds": 9.24417,
+          "maxSeconds": 9.24417,
+          "medianSeconds": 9.24417
+        },
+        "sumBuildStageSeconds": 28.935714,
+        "sumAllStageSeconds": 47.479472
+      },
+      "typedElapsedMinusStagesSeconds": 0.08321800000000223
+    },
+    {
+      "family": "diagnostic-checker",
+      "comparisonLocalOrchestrationLOC": 4,
+      "comparisonDefinitionLOC": 2,
+      "manifestLifecycleScaffoldingLOC": 0,
+      "retainedDomainBuildHelperLOC": 22,
+      "legacyIntendedCaught": true,
+      "legacyUnrelatedCompileAccepted": null,
+      "typedFreshSeconds": 4.973488,
+      "cliParallelReuseSeconds": 2.729233,
+      "wholeCampaignRepeatsPerCondition": 1,
+      "outcomes": [
+        "Caught",
+        "Survived"
+      ],
+      "typedFresh": {
+        "baselineBuildInvocations": 2,
+        "baselineBuildTiming": {
+          "repeats": 2,
+          "minSeconds": 0.864715,
+          "maxSeconds": 0.918225,
+          "medianSeconds": 0.89147
+        },
+        "sumBuildStageSeconds": 3.558678,
+        "sumAllStageSeconds": 4.954149
+      },
+      "cliParallelReuse": {
+        "baselineBuildInvocations": 1,
+        "baselineBuildTiming": {
+          "repeats": 1,
+          "minSeconds": 0.877249,
+          "maxSeconds": 0.877249,
+          "medianSeconds": 0.877249
+        },
+        "sumBuildStageSeconds": 2.775368,
+        "sumAllStageSeconds": 3.93278
+      },
+      "typedElapsedMinusStagesSeconds": 0.01933899999999955
+    }
+  ],
+  "authoring": [
+    {
+      "family": "replacement",
+      "templateFieldsChanged": [
+        "id",
+        "description",
+        "edits"
+      ],
+      "validationCommands": 1,
+      "testsExecutedDuringCheck": false,
+      "automatedSerializationAndCheck": {
+        "repeats": 3,
+        "minSeconds": 0.025291917379945517,
+        "maxSeconds": 0.05823345901444554,
+        "medianSeconds": 0.02542133303359151
+      }
+    },
+    {
+      "family": "patch-catalogue",
+      "templateFieldsChanged": [
+        "id",
+        "description",
+        "edits"
+      ],
+      "validationCommands": 1,
+      "testsExecutedDuringCheck": false,
+      "automatedSerializationAndCheck": {
+        "repeats": 3,
+        "minSeconds": 0.37392104091122746,
+        "maxSeconds": 0.40745075000450015,
+        "medianSeconds": 0.38921954203397036
+      }
+    },
+    {
+      "family": "generated-code",
+      "templateFieldsChanged": [
+        "id",
+        "description",
+        "edits"
+      ],
+      "validationCommands": 1,
+      "testsExecutedDuringCheck": false,
+      "automatedSerializationAndCheck": {
+        "repeats": 3,
+        "minSeconds": 0.024125791154801846,
+        "maxSeconds": 0.024874708615243435,
+        "medianSeconds": 0.024490791838616133
+      }
+    },
+    {
+      "family": "diagnostic-checker",
+      "templateFieldsChanged": [
+        "id",
+        "description",
+        "edits"
+      ],
+      "validationCommands": 1,
+      "testsExecutedDuringCheck": false,
+      "automatedSerializationAndCheck": {
+        "repeats": 3,
+        "minSeconds": 0.023509624879807234,
+        "maxSeconds": 0.024647582788020372,
+        "medianSeconds": 0.024002416990697384
+      }
+    }
+  ],
+  "diagnosticRuleMismatch": {
+    "verdict": "wrong-failure",
+    "expected": "policy.capacity: maximum must be positive",
+    "observed": "policy.timeout: duration must be positive",
+    "exit": 1
+  },
+  "diagnosis": {
+    "artifactReads": 2,
+    "expectedFailures": [
+      "suite/intended"
+    ],
+    "actualFailures": [
+      "suite/other"
+    ],
+    "automatedReadTime": {
+      "repeats": 5,
+      "minSeconds": 0.0006172088906168938,
+      "maxSeconds": 0.0029806247912347317,
+      "medianSeconds": 0.0006547500379383564
+    }
+  },
+  "reproduction": {
+    "commands": 1,
+    "case": "diagnostic-checker/invalid-capacity",
+    "exit": 0,
+    "verdict": "caught",
+    "seconds": 2.5890352916903794
+  },
+  "limits": [
+    "Whole-campaign variance is not estimated from one run per condition.",
+    "Fresh library and parallel/reuse CLI conditions differ.",
+    "Elapsed-minus-stages includes copies, edits and report IO; it is not isolated CPU overhead.",
+    "Authoring/diagnosis timings exclude human reasoning."
+  ]
+}

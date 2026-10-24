@@ -1,0 +1,56 @@
+[
+  {
+    "owner": "mori://shinzui/rdkafka-hs/packages/rdkafka-hs",
+    "head": "2917f3af396dd1536944951a65946ada87ceb874",
+    "files": [
+      {
+        "path": "scripts/test-mutations.hs",
+        "sha256": "bc1ff5f598a122928e187f30b4c929cfa805f79133c086fb7ad288d5c1888b5b",
+        "lines": 453
+      }
+    ]
+  },
+  {
+    "owner": "mori://shinzui/nagare",
+    "head": "4c99ffe3df84af1f16a2161944ac790197dd63fa",
+    "files": [
+      {
+        "path": "cli/nagare-harness/src/Nagare/Harness/Mutation.hs",
+        "sha256": "bb16987bb45e18b609bf1c7e5bbd2bb0b07ae9b67aef01507d97a8cec8485f6b",
+        "lines": 315
+      },
+      {
+        "path": "cli/nagarectl/test/mutations/records.json",
+        "sha256": "f412a0c4191d90e60c47716d222f26bd56473c22278ca993e40b56aeacbcdd63",
+        "lines": 1136
+      }
+    ]
+  },
+  {
+    "owner": "mori://shinzui/keiro/packages/keiro-dsl",
+    "head": "e6ef560b0a8db0dc091d0f8d7da1bb08c29155be",
+    "files": [
+      {
+        "path": "keiro-dsl/test/mutation-test.sh",
+        "sha256": "1aa082f1df2730db8087f005ea8c9b6077e5bc13ad3402e5f813ca90914aaa47",
+        "lines": 37
+      },
+      {
+        "path": "keiro-dsl/test/history-dependent-holes-mutation-test.sh",
+        "sha256": "a7b25458f41c9c2953877b3d4c8d4b0f8d98e5ac4f4ab4522a51b9777b7c2a08",
+        "lines": 85
+      }
+    ]
+  },
+  {
+    "owner": "mori://shinzui/shibuya",
+    "head": "0967f450b659b48d24cb49f199718451a65d2d48",
+    "files": [
+      {
+        "path": "scripts/audit/run-websocket-mutation-controls.py",
+        "sha256": "f6201fe05cfbff1ca73cc9fff3e24ba2196a4631cc9825c8eca9e87f22634b55",
+        "lines": 75
+      }
+    ]
+  }
+]

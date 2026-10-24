@@ -11,6 +11,12 @@ provenance:
     model: "gpt-6-astra"
     harness: "codex-cli"
     at: 2026-10-24T14:33:08Z
+  revisions:
+    - model: "gpt-6.1-sol"
+      harness: "codex-cli"
+      at: 2026-10-24T17:25:06Z
+      mode: "implement"
+      note: "Prove four local migration families and combined public-path parity"
 ---
 
 # Prove representative script migration and usability
@@ -28,27 +34,65 @@ A maintainer can replace representative bespoke mutation orchestration with Heni
 ## Progress
 
 
-- [ ] M1: The surveyed use-case inventory maps to runnable local Heni fixtures and explicit unsupported boundaries.
-- [ ] M2: Library and CLI trials preserve intended detections and reject legacy false positives.
-- [ ] M3: Measured authoring, diagnosis, orchestration, and runtime results support the final public API and migration guide.
+- [x] (2026-10-24) M1: The surveyed use-case inventory maps to runnable local Heni fixtures and explicit unsupported boundaries.
+- [x] (2026-10-24) M2: Library and CLI trials preserve intended detections and reject legacy false positives.
+- [x] (2026-10-24) M3: Measured authoring, diagnosis, orchestration, and runtime results support the final public API and migration guide.
 
 
 ## Surprises & Discoveries
 
 
-None yet.
+2026-10-24: The cross-package migration trial cannot be a default core test
+with a build-tool dependency back through heni-cli: Cabal 3.16.1.0 rejects that
+qualified dependency cycle (FRIC-3). The trial is explicitly enabled with the
+`migration-tests` flag and a separately built `HENI_CLI_EXE`; the checked-in
+validation script supplies it. This preserves an independently testable core
+archive and keeps the trial mandatory in repository release CI.
 
+2026-10-24: The checker fixture exposed preflight rejection of workspace-built
+executables. EP-3's accepted follow-up now validates explicit `./...` paths at
+configuration time and checks availability/containment after the build.
+
+
+
+2026-10-24: The full regression exposed a transient macOS process-group EPERM
+while exiting. Independent killpg probes reproduced the short transition to
+ESRCH. The shared supervisor now waits within its existing bounds and clears
+provisional errors only after definite disappearance; persistent errors remain
+infrastructure failures. EP-3 and ADR 4 record the accepted lifecycle correction.
 
 ## Decision Log
 
 
-No implementation decisions yet; the approach below is the initial proposed contract.
+2026-10-24: Keep the cross-package trial optional in the core archive but
+mandatory in release CI through `scripts/test-migrations.sh`; it consumes an
+explicit prebuilt CLI rather than adding a cyclic core-test dependency.
+
+2026-10-24: Use independently authored BSD fixtures, preserve generator-input
+ordering and distinguish domain helpers from removable lifecycle code. Report
+automated actions separately from human usability. See
+[ADR 9](../adr/9-migration-proof-and-domain-ownership.md).
 
 
 ## Outcomes & Retrospective
 
 
-To be filled during implementation, including acceptance evidence, remaining limits, and friction triage.
+All four families passed independently authored typed/CLI parity through
+`sh scripts/test-migrations.sh`, including caught/survivor variants, actual
+unrelated-compiler false-positive rejection and ten richer evidence/resource
+cases. `scripts/measure-migration.py` produced the measured value record;
+default manifests and quickstart caught/survivor commands ran successfully.
+Report/schema checks and strict friction validation passed. The final default
+regression passed all core, CLI and optional reporter suites.
+
+The API review fixed workspace-built executable validation, final progress
+after resource teardown, and transient macOS group-exit observation. The latter
+has focused repeated timeout/replay regressions. Measured lifecycle reduction
+is confined to independently authored fixtures; automated timing is not human
+usability evidence or a production-wide savings estimate. ADR 9 preserves the
+consumer boundary and supported exclusions. FRIC-3 is triaged accepted: the
+explicit separately built CLI gate avoids the qualified Cabal test cycle.
+No source consumer repository was modified or executed.
 
 
 ## Context and Orientation
@@ -98,7 +142,7 @@ mori registry show shinzui/rdkafka-hs --full
 mori registry show shinzui/nagare --full
 mori registry show shinzui/keiro --full
 mori registry show shinzui/shibuya --full
-cabal test heni:heni-migration --test-show-details=direct
+sh scripts/test-migrations.sh
 cabal test all --test-show-details=direct
 ```
 

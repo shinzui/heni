@@ -1,0 +1,16 @@
+cabal-version: 3.4
+name: heni-generated-fixture
+version: 0.1.0.0
+build-type: Simple
+license: BSD-3-Clause
+
+test-suite fixture-test
+  type: exitcode-stdio-1.0
+  default-language: GHC2024
+  hs-source-dirs:
+    test
+    generated
+
+  main-is: Main.hs
+  other-modules: Generated
+  build-depends: base >=4.21.2 && <4.22

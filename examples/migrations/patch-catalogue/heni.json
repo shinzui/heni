@@ -1,0 +1,49 @@
+{
+  "schemaVersion": 1,
+  "commands": {
+    "build": {
+      "executable": "cabal",
+      "arguments": [
+        "build",
+        "fixture-test",
+        "--offline",
+        "-j1"
+      ],
+      "timeoutSeconds": 60
+    },
+    "test": {
+      "executable": "cabal",
+      "arguments": [
+        "test",
+        "fixture-test",
+        "--offline",
+        "--test-show-details=direct",
+        "-j1"
+      ],
+      "timeoutSeconds": 60
+    }
+  },
+  "cases": [
+    {
+      "id": "guard-bypass",
+      "description": "Removing the capacity guard must fail the full-capacity assertion.",
+      "tags": [
+        "regression"
+      ],
+      "edits": [
+        {
+          "kind": "patch",
+          "content": "diff --git a/src/Capacity.hs b/src/Capacity.hs\n--- a/src/Capacity.hs\n+++ b/src/Capacity.hs\n@@ -1,7 +1,7 @@\n module Capacity (admits, marker) where\n \n admits :: Int -> Int -> Bool\n-admits used limit = used < limit\n+admits used limit = True\n \n marker :: String\n marker = \"baseline\"\n"
+        }
+      ],
+      "build": "build",
+      "test": "test",
+      "expect": {
+        "kind": "diagnostic",
+        "stage": "test",
+        "exitCode": 1,
+        "outputContains": "rejects full capacity: FAIL"
+      }
+    }
+  ]
+}

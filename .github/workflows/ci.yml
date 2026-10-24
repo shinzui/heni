@@ -8,6 +8,7 @@ jobs:
         ghc: ['9.12.4']
     runs-on: ${{ matrix.os }}
     env:
+      HENI_MIGRATION_RESULTS: ${{ github.workspace }}/.heni-runs/migration-results.json
       HENI_SCHEMA_RESOURCE: ${{ github.workspace }}/.heni-runs/resource-schema-fixture.json
       HENI_SCHEMA_EVIDENCE: .heni-runs/evidence-schema-fixture.jsonl
       HENI_SCHEMA_REPORT: .heni-runs/report-schema-fixture.json
@@ -22,4 +23,5 @@ jobs:
       - run: cabal test all -j1 --test-show-details=direct
       - run: python3 -m pip install jsonschema==4.26.0
       - run: python3 scripts/check-schemas.py .heni-runs/report-schema-fixture.json .heni-runs/resource-schema-fixture.json
+      - run: sh scripts/test-migrations.sh
       - run: cabal haddock all

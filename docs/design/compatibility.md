@@ -67,3 +67,13 @@ atomic queue/claim transitions; no async framework or application effect stack
 is required. Worker processes and resource commands retain the shared POSIX
 supervisor. Timing observations and explicit per-build job limits are recorded
 in [scheduling](scheduling.md), separately from compatibility claims.
+
+Cabal's current normal Hackage release was independently checked as 3.18.2.0
+(upstream `cabal-install-v3.18.2.0`, dereferenced
+`45f982c12ef78ea8ec5beb43cb8c71c8e8f237c1`). Local measurements still use
+3.16.1.0 (`cabal-install-v3.16.1.0`, dereferenced
+`8d1f5a33662be0db0654061fb53fb00e3f4417e0`). The qualified build-tool test
+cycle was observed on 3.16.1.0, not asserted to have been reproduced on 3.18.2.0.
+Mori supplied solver source at mori://haskell/cabal/packages/cabal-install-solver;
+the optional integration boundary also preserves standalone core tests regardless
+of the solver version.

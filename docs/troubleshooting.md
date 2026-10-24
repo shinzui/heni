@@ -52,3 +52,26 @@ mutation-results name. Source symlinks and special files are unsupported in the
 first capture policy; select/exclude inputs explicitly instead of following
 them silently. Disposable workspaces protect the active checkout, while external
 service state and detached processes remain consumer responsibilities.
+
+For generated code, inspect the final build artifact and its generator input.
+The migration example changes input before generation; changing output before
+a regenerating build can erase the intended fault. A surviving marker change
+in the trial is deliberate and verifies the distinction.
+
+A required replay mismatch remains `wrong-failure`, including a replay timeout;
+the underlying Replay outcome and original failure are retained. Invalid
+QuickCheck tokens become skipped/pending reproductions and cannot count as
+caught. Multiple replay properties need a consumer-specific protocol rather
+than the initial one-property helper.
+
+For resource failures, inspect acquire/reset/release records and their command
+logs. Both primary and teardown errors matter. Check that baseline and candidate
+have equivalent identity/version/epoch and namespaced bindings. Worker capacities
+also limit fixture acquisition. Separate Heni processes require external locking.
+Unknown epochs disable baseline reuse; an unverified build observation or
+unexpected generated source retires retained artifacts and invalidates the case.
+
+`check` cannot prove an explicit `./...` build product already exists. It checks
+contained syntax and defers availability until after build. A missing or
+symlinked workspace program is a launch/infrastructure failure. Host tools are
+still checked before a campaign starts.

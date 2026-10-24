@@ -1,0 +1,3 @@
+capacity=10
+timeout=30
+label=baseline

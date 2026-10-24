@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 1,
+  "commands": {
+    "build": {
+      "executable": "cabal",
+      "arguments": [
+        "build",
+        "fixture-test",
+        "--offline",
+        "-j1"
+      ],
+      "timeoutSeconds": 60
+    },
+    "test": {
+      "executable": "cabal",
+      "arguments": [
+        "test",
+        "fixture-test",
+        "--offline",
+        "--test-show-details=direct",
+        "-j1"
+      ],
+      "timeoutSeconds": 60
+    }
+  },
+  "cases": [
+    {
+      "id": "guard-bypass",
+      "description": "Removing the capacity guard must fail the full-capacity assertion.",
+      "tags": [
+        "regression"
+      ],
+      "edits": [
+        {
+          "kind": "replace",
+          "path": "src/Capacity.hs",
+          "old": "used < limit",
+          "new": "True"
+        }
+      ],
+      "build": "build",
+      "test": "test",
+      "expect": {
+        "kind": "diagnostic",
+        "stage": "test",
+        "exitCode": 1,
+        "outputContains": "rejects full capacity: FAIL"
+      }
+    }
+  ]
+}

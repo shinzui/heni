@@ -26,6 +26,8 @@ for path in (root / "heni-cli/test/corpus").glob("*.json"):
         valid = False
     assert valid == path.name.startswith("valid-"), path.name
 manifest_validator.validate(json.loads((root / "examples/minimal/heni.json").read_text()))
+for path in (root / "examples/migrations").glob("*/heni.json"):
+    manifest_validator.validate(json.loads(path.read_text()))
 schema = json.loads((root / "schemas/report-v1.schema.json").read_text())
 Draft202012Validator.check_schema(schema)
 validator = Draft202012Validator(schema)

@@ -19,17 +19,50 @@ tested-with: ghc ==9.12.4
 extra-doc-files:
   CHANGELOG.md
   README.md
+  docs/*.md
   docs/adr/*.md
   docs/design/*.md
+  docs/research/*.md
+  docs/validation/*.json
+  docs/validation/*.md
 
 extra-source-files:
   schemas/*.json
   scripts/check-schemas.py
+  scripts/measure-migration.py
+  scripts/test-migrations.sh
 
 data-files:
   examples/adapters/*.json
   examples/adapters/README.md
   examples/adapters/input
+  examples/migrations/README.md
+  examples/migrations/diagnostic-checker/LICENSE
+  examples/migrations/diagnostic-checker/heni.json
+  examples/migrations/diagnostic-checker/policy.txt
+  examples/migrations/diagnostic-checker/tools/Build.hs
+  examples/migrations/diagnostic-checker/tools/Check.hs
+  examples/migrations/generated-code/LICENSE
+  examples/migrations/generated-code/cabal.project
+  examples/migrations/generated-code/generated-fixture.cabal
+  examples/migrations/generated-code/heni.json
+  examples/migrations/generated-code/model.txt
+  examples/migrations/generated-code/test/Main.hs
+  examples/migrations/generated-code/tools/Build.hs
+  examples/migrations/patch-catalogue/LICENSE
+  examples/migrations/patch-catalogue/cabal.project
+  examples/migrations/patch-catalogue/heni-minimal-fixture.cabal
+  examples/migrations/patch-catalogue/heni.json
+  examples/migrations/patch-catalogue/patches/guard-bypass.patch
+  examples/migrations/patch-catalogue/patches/survivor.patch
+  examples/migrations/patch-catalogue/src/Capacity.hs
+  examples/migrations/patch-catalogue/test/Main.hs
+  examples/migrations/replacement/LICENSE
+  examples/migrations/replacement/cabal.project
+  examples/migrations/replacement/heni-minimal-fixture.cabal
+  examples/migrations/replacement/heni.json
+  examples/migrations/replacement/src/Capacity.hs
+  examples/migrations/replacement/test/Main.hs
   examples/minimal/*.cabal
   examples/minimal/cabal.project
   examples/minimal/heni.json
@@ -39,6 +72,11 @@ data-files:
 source-repository head
   type: git
   location: https://github.com/shinzui/heni.git
+
+flag migration-tests
+  description: Run cross-package migration trials with an explicitly supplied CLI executable.
+  default: False
+  manual: True
 
 common common
   default-language: GHC2024
@@ -251,4 +289,31 @@ executable heni-campaign-bench
     heni,
     unix,
 
+  ghc-options: -threaded
+
+test-suite heni-migration
+  import: common
+  type: exitcode-stdio-1.0
+  hs-source-dirs: test/migration
+  main-is: Main.hs
+  other-modules:
+    Legacy
+    Paths_heni
+
+  autogen-modules: Paths_heni
+  build-depends:
+    aeson,
+    bytestring,
+    directory,
+    filepath,
+    heni,
+    process,
+    unix,
+
+  build-tool-depends:
+    heni:heni-evidence-fixture,
+    heni:heni-fixture,
+
+  if !flag(migration-tests)
+    buildable: False
   ghc-options: -threaded

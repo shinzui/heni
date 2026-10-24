@@ -1,0 +1,12 @@
+diff --git a/src/Capacity.hs b/src/Capacity.hs
+--- a/src/Capacity.hs
++++ b/src/Capacity.hs
+@@ -1,7 +1,7 @@
+ module Capacity (admits, marker) where
+ 
+ admits :: Int -> Int -> Bool
+ admits used limit = used < limit
+ 
+ marker :: String
+-marker = "baseline"
++marker = "variant"

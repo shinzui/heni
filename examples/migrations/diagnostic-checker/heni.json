@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "commands": {
+    "build": {
+      "executable": "runghc",
+      "arguments": [
+        "tools/Build.hs"
+      ],
+      "timeoutSeconds": 30
+    },
+    "test": {
+      "executable": "./dist-newstyle/checker",
+      "timeoutSeconds": 5
+    }
+  },
+  "cases": [
+    {
+      "id": "invalid-capacity",
+      "description": "The external checker must identify the exact capacity rule.",
+      "edits": [
+        {
+          "kind": "replace",
+          "path": "policy.txt",
+          "old": "capacity=10",
+          "new": "capacity=-1"
+        }
+      ],
+      "build": "build",
+      "test": "test",
+      "expect": {
+        "kind": "diagnostic",
+        "stage": "test",
+        "exitCode": 1,
+        "outputContains": "policy.capacity: maximum must be positive"
+      }
+    }
+  ]
+}

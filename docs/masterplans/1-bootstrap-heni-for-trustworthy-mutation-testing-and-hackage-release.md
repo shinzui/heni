@@ -62,7 +62,7 @@ Apply [core standards](mori://shinzui/haskell-jitsurei/docs/core-standards), [re
 | 5 | Strict manifests and shared CLI | [docs/plans/5-expose-strict-manifests-and-the-shared-cli.md](../plans/5-expose-strict-manifests-and-the-shared-cli.md) | EP-4 | None | Complete |
 | 6 | Named-test adapters, replay, crash evidence | [docs/plans/6-add-named-test-adapters-replay-and-crash-evidence.md](../plans/6-add-named-test-adapters-replay-and-crash-evidence.md) | EP-4 | EP-5 | Complete |
 | 7 | Resource-aware workers and verified reuse | [docs/plans/7-add-resource-aware-workers-and-verified-reuse.md](../plans/7-add-resource-aware-workers-and-verified-reuse.md) | EP-4 | EP-5 | Complete |
-| 8 | Representative migration and usability proof | [docs/plans/8-prove-representative-script-migration-and-usability.md](../plans/8-prove-representative-script-migration-and-usability.md) | EP-5, EP-6, EP-7 | None | Not Started |
+| 8 | Representative migration and usability proof | [docs/plans/8-prove-representative-script-migration-and-usability.md](../plans/8-prove-representative-script-migration-and-usability.md) | EP-5, EP-6, EP-7 | None | Complete |
 | 9 | Portable packages and Hackage preparation | [docs/plans/9-validate-portable-packages-and-prepare-the-hackage-release.md](../plans/9-validate-portable-packages-and-prepare-the-hackage-release.md) | EP-8 | None | Not Started |
 
 All hard dependencies name whole children and require Complete status. Status values are Not Started, In Progress, Complete, and Cancelled. Soft dependencies share useful context without blocking work.
@@ -116,7 +116,14 @@ Cross-plan ADR topics are package/public API boundaries (EP-1), snapshot and edi
 ## Progress
 
 
-EP-1 completed on 2026-10-24 with ordinary Cabal build, 28 adversarial classification scenarios, API construction/label fixtures and Haddock. EP-2 completed with isolated snapshot/edit/recovery tests. EP-3 completed with bounded process-group and log/witness tests. EP-4 completed: the real standalone Cabal baseline-to-report gate passed, including caught/survived/unexpected-build-failure, recovery and cancellation. EP-5 completed with strict schemas/decoder, executable CLI parity and SIGINT finalization. EP-6 completed with attempt-bound protocol, real Tasty/Hspec subprocess/CLI parity, native QuickCheck replay and fresh crash probes. EP-7 completed with scoped resources, bounded workers, conservative baseline sharing and verified build reuse. EP-8 is next. Later children await their hard prerequisites. RES-1 and RES-2 supply the use cases and ecosystem evidence. The remaining integration gates are the combined CLI/library migration suite in EP-8, and extracted-source publication readiness in EP-9. Local compiler validation is macOS/GHC 9.12.4. A small real Cabal workload has measured fresh/reuse timing and baseline counts; migration savings remain unmeasured.
+EP-1 through EP-8 are Complete. The four migration families and richer
+named/replay/crash/resource trials passed through typed and CLI definitions,
+with measured orchestration/action/runtime evidence and retained artifacts.
+The final default suite passed every core, CLI, Tasty and Hspec target on
+macOS/GHC 9.12.4, including the process-group race regression. EP-9 remains the
+extracted-source, metadata and compatibility release-readiness gate. Historical
+survey, refreshed source identities and executable migration evidence are
+recorded separately; no fleet migration or publication occurred.
 
 
 ## Surprises & Discoveries
@@ -124,6 +131,12 @@ EP-1 completed on 2026-10-24 with ordinary Cabal build, 28 adversarial classific
 
 The public model is executable and conservative: malformed or truncated evidence is infrastructure failure, not detection. Local ADRs now record the framework-neutral core and evidence-owned classifier. Initial compiler validation is macOS/GHC 9.12.4; the CI matrix has not yet run remotely. The first real integration gate is accepted. Reports now preserve explicit redaction, exact byte witnesses, baseline/patch/candidate artifacts and a sequenced selected ledger. A shared token decoder is required because ordinary JSON map decoding loses duplicate keys. Strong adapters preserve unknown discovery honestly, require full completion, and reject dry-run/history modes that cannot prove the declared execution. Worker fixture acquisition must respect capacity as well as case use. Generic build invalidation needs a trusted content-observation provider and remains outside portable manifest syntax.
 
+
+EP-8 exposed workspace-built executable preflight, post-teardown progress and
+transient macOS group-exit observation issues; all were fixed in their owners
+with regression checks. FRIC-3 records the cross-package Cabal test cycle; an
+explicit integration script preserves independent core tests. ADR 9 records
+the migration/domain boundary and limits of automated measurement.
 
 ## Decision Log
 
