@@ -6,7 +6,10 @@ not upload candidates, publish packages, push commits or create tags. Recheck th
 before a later release action. An absent package name is not a reservation or an
 ownership grant; verify the intended Hackage account's upload permissions.
 
-Use the tested GHC/Cabal combinations in [compatibility](design/compatibility.md).
+The archive gate requires released cabal-install 3.16.1.0 or newer for its
+selective Haddock options. Core build/runtime tests also passed with 3.14.1.1,
+but that version hides the requested implementation pages. Use the tested
+GHC/Cabal combinations in [compatibility](design/compatibility.md).
 The four packages share version 0.1.0.0; CLI/reporters require that exact core
 version. Public API versioning follows the [PVP](https://pvp.haskell.org/): breaking
 API/type/instance changes increase A.B, additive APIs increase C, and fixes may

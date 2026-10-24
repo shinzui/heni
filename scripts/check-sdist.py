@@ -19,6 +19,10 @@ parser.add_argument("--archives", type=Path, help="validate existing archives in
 parser.add_argument("--bounds", choices=["lower", "newest"], default="newest")
 parser.add_argument("--output", type=Path, default=Path("dist-release"))
 args = parser.parse_args()
+cabal_version = subprocess.check_output(["cabal", "--numeric-version"], text=True).strip()
+version_parts = tuple(int(part) for part in cabal_version.split("."))
+if (version_parts + (0, 0, 0, 0))[:4] < (3, 16, 1, 0):
+    parser.error("archive documentation requires cabal-install >=3.16.1.0; older Cabal does not preserve the selective Haddock show flags")
 checkout = Path(__file__).resolve().parent.parent
 output = args.output.resolve()
 output.mkdir(parents=True, exist_ok=True)
@@ -30,9 +34,16 @@ checks = []
 def retain_evidence():
     evidence = output / "evidence"
     evidence.mkdir(exist_ok=True)
-    for pattern in ["*.log", "*-plan.json", "core-closure.json", "migration-results.json"]:
+    for pattern in ["*.log", "*-plan.json", "core-closure.json", "core-report.json", "resource-report.json", "test-evidence.jsonl", "migration-results.json"]:
         for path in fresh.glob(pattern):
             shutil.copyfile(path, evidence / path.name)
+    campaigns = evidence / "campaigns"
+    retained = list(fresh.glob("heni-migration-*")) + list(fresh.glob("adapter-example-*"))
+    retained += [fresh / "consumer" / name for name in ["library-results", "cli-caught", "cli-survivor", "cli-wrong"]]
+    for directory in retained:
+        if directory.is_dir():
+            campaigns.mkdir(exist_ok=True)
+            shutil.copytree(directory, campaigns / directory.name, dirs_exist_ok=True)
     (evidence / "state.json").write_text(json.dumps({"extraction": str(fresh), "bounds": args.bounds, "checks": checks}, indent=2) + "\n")
 
 
@@ -145,7 +156,9 @@ run("optional-git-patches", ["cabal", "test", "heni-workspace", "heni-runner", "
 
 cli = packages["heni-cli"]
 project(cli / "cabal.project", [".", "../heni-0.1.0.0"])
-run("cli-with-core-archive", ["cabal", "test", "heni-cli:heni-cli-test", "-j1", "--test-show-details=direct"], cli)
+cli_env = os.environ.copy()
+cli_env["HENI_SCHEMA_RESOURCE"] = str(fresh / "resource-report.json")
+run("cli-with-core-archive", ["cabal", "test", "heni-cli:heni-cli-test", "-j1", "--test-show-details=direct"], cli, cli_env)
 project(fresh / "cabal.project", [p.name for p in packages.values()])
 run("optional-reporters", ["cabal", "test", "heni-tasty:heni-tasty-test", "heni-hspec:heni-hspec-test", "-j1", "--test-show-details=direct"], fresh)
 run("haddock", ["cabal", "haddock", "all", "--haddock-for-hackage", "--haddock-executables", "--haddock-option=--show=Test.Heni.Internal.Model", "--haddock-option=--show=Test.Heni.Internal.Files", "-j1"], fresh)
@@ -182,6 +195,15 @@ run("schema-agreement", [os.environ.get("HENI_SCHEMA_PYTHON", "python3"), str(co
 binary = subprocess.check_output(["cabal", "list-bin", "heni-cli:exe:heni"], cwd=fresh, text=True).strip()
 run("version-without-git", [binary, "--version"], fresh, minimal)
 run("help", [binary, "--help"], fresh)
+framework_env = os.environ.copy()
+fixture_dirs = []
+for package in ["heni-tasty", "heni-hspec"]:
+    fixture = subprocess.check_output(["cabal", "list-bin", package + ":exe:" + package + "-fixture"], cwd=fresh, text=True).strip()
+    fixture_dirs.append(str(Path(fixture).parent))
+framework_env["PATH"] = os.pathsep.join(fixture_dirs + [framework_env["PATH"]])
+for example in ["tasty", "hspec", "property"]:
+    run("adapter-example-" + example, [binary, "run", str(core / "examples/adapters" / (example + ".json")), "--output", str(fresh / ("adapter-example-" + example)), "--json"], fresh, framework_env)
+
 consumer = fresh / "consumer"
 shutil.copytree(core / "examples/standalone", consumer)
 project(consumer / "cabal.project", [".", "../heni-0.1.0.0"])
@@ -207,6 +229,8 @@ for filename in ["core-plan.json", "combined-plan.json"]:
 for archive in (fresh / "dist-newstyle").rglob("*-docs.tar.gz"):
     shutil.copyfile(archive, output / archive.name)
     hashes[archive.name] = hashlib.sha256(archive.read_bytes()).hexdigest()
+for name in names:
+    assert (output / (name + "-0.1.0.0-docs.tar.gz")).is_file(), name
 summary = {"bounds": args.bounds, "extraction": str(fresh), "archives": hashes, "compiler": subprocess.check_output(["ghc", "--numeric-version"], text=True).strip(), "cabal": subprocess.check_output(["cabal", "--numeric-version"], text=True).strip(), "checks": checks}
 (output / "archive-validation.json").write_text(json.dumps(summary, indent=2) + "\n")
 print(f"Archive validation passed; evidence: {output / 'archive-validation.json'}", flush=True)

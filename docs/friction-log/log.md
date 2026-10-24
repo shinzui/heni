@@ -1,6 +1,9 @@
 # Bundle Update Log
 
 ## 2026-10-24
+* **Update**: FRIC-5 accepted: Record the intended canonical GHC owner URI despite pending registry coverage; retain the project-relative tagged source identity.
+* **Update**: FRIC-6 accepted: Verified selective pages with newer released Cabal without patching the compiler or changing exposed modules.
+* **Addition**: FRIC-6 records detour tooling friction with mori://haskell/cabal: Cabal 3.14 hides requested Haddock definition pages
 * **Update**: FRIC-5 accepted: Verified public API coverage and local links after the supported Haddock --show workaround.
 * **Addition**: FRIC-5 records detour tooling friction with https://github.com/ghc/ghc/tree/ghc-9.12.4-release/utils/haddock: Haddock instance origins link to hidden module pages
 * **Update**: FRIC-4 accepted: Confirmed Cabal source transport selection and verbose HTTPS failure; retain a TLS-capable package transport.

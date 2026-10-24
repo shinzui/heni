@@ -86,6 +86,29 @@ explicitly non-exposed implementation pages while preserving public homes and
 Cabal exports. All 19 core pages have 100% coverage and no broken own module/
 source links in the focused generated-doc check.
 
+2026-10-24: CI action metadata was refreshed from official release/tag/source
+records after no owning Mori records were found. Current Node 24 releases are
+checkout 7.0.1, upload-artifact 7.0.2 and haskell-actions/setup 2.12.1. Workflow
+configuration remains distinct from locally executed archive evidence.
+
+2026-10-24: The final schema check exposed missing forwarding of the resource
+fixture output variable to the CLI suite that emits it. That helper mapping is
+corrected, and an explicitly diagnostic tail run passed schema, no-Git version,
+help and standalone library/CLI 0/1/2 checks. Acceptance still requires a fresh
+complete run of the rebuilt archives.
+
+2026-10-24: Cabal 3.14.1.1 did not generate the requested definition pages;
+Cabal 3.18.2.0 did on the same extracted source/GHC/Haddock. FRIC-6 is accepted:
+the release gate requires Cabal >=3.16.1.0, matching the successful macOS tool,
+and Linux uses the checksum-verified official 3.18.2.0 binary. No compiler or
+runtime dependency is patched; ordinary core tests already passed on 3.14.1.1.
+
+2026-10-24: All three checked-in adapter manifests (Tasty, Hspec and native
+property replay) passed actual CLI execution from extracted packages. The
+archive script now validates their schemas and runs them, in addition to the
+independent consumer and migration gate; emitted report/protocol fixtures and
+portable campaign artifact directories are retained with validation evidence.
+
 ## Decision Log
 
 

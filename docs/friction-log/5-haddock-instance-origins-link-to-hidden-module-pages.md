@@ -10,15 +10,18 @@ status: "accepted"
 impact: detour
 kind: tooling
 origin: "mori://shinzui/heni"
-affects: "https://github.com/ghc/ghc/tree/ghc-9.12.4-release/utils/haddock"
+affects: "mori://ghc/ghc"
 affectedVersion: "2.32.0"
 plan: "docs/plans/9-validate-portable-packages-and-prepare-the-hackage-release.md"
 workaround: "Generate only the two non-exposed definition pages via --show, mark them not-home and explicitly document their unsupported implementation status; keep Cabal exports unchanged."
-resolution: "Selectively generate the two non-exposed definition pages, mark them not-home and keep installed module exports unchanged; all 19 core module/source link checks now pass."
+resolution: "Selectively generate the two non-exposed definition pages with a supported released Cabal, keep public documentation homes and installed exports unchanged, and validate local links."
 amended:
   - by: "codex-cli/gpt-6.1-sol"
     at: "2026-10-24T19:05:03Z"
     change: "Verified public API coverage and local links after the supported Haddock --show workaround."
+  - by: "codex-cli/gpt-6.1-sol"
+    at: "2026-10-24T19:27:21Z"
+    change: "Record the intended canonical GHC owner URI despite pending registry coverage; retain the project-relative tagged source identity."
 ---
 # Haddock instance origins link to hidden module pages
 
@@ -37,3 +40,8 @@ AssertionError: Test-Heni-Command.html -> Test-Heni-Internal-Model.html; Haddock
 ## Workaround
 
 Generate only the two non-exposed definition pages via --show, mark them not-home and explicitly document their unsupported implementation status; keep Cabal exports unchanged.
+
+The intended canonical owner is mori://ghc/ghc; its current Mori registry entry
+and artifact-level source URI are pending. The project-relative source is
+`utils/haddock` at the upstream `ghc-9.12.4-release` tag. Official release source
+was inspected after no owning corpus entry was found.

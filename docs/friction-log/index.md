@@ -13,4 +13,5 @@ okf_version: "0.2"
 - [Cross-package CLI test tools create a Cabal dependency cycle](3-cross-package-cli-test-tools-create-a-cabal-dependency-cycle.md) - Cabal rejected the core migration test when its CLI build tool depended back on the core package.
 - [Restricted Cabal tool paths need an explicit TLS transport](4-restricted-cabal-tool-paths-need-an-explicit-tls-transport.md) - Cabal transport auto-selection hid the missing curl capability behind failing HTTP mirrors during isolated archive validation.
 - [Haddock instance origins link to hidden module pages](5-haddock-instance-origins-link-to-hidden-module-pages.md) - Haddock generated broken local links for public instances defined in non-exposed modules, requiring selective implementation documentation.
+- [Cabal 3.14 hides requested Haddock definition pages](6-cabal-3-14-hides-requested-haddock-definition-pages.md) - Cabal 3.14.1.1 omitted requested implementation documentation despite --show, blocking the archive link gate until a released newer Cabal was used.
 

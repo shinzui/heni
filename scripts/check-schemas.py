@@ -34,6 +34,8 @@ for path in args.corpus.glob("*.json"):
     assert valid == path.name.startswith("valid-"), path.name
 manifest_validator.validate(json.loads((root / "examples/minimal/heni.json").read_text()))
 manifest_validator.validate(json.loads((root / "examples/standalone/target/heni.json").read_text()))
+for path in (root / "examples/adapters").glob("*.json"):
+    manifest_validator.validate(json.loads(path.read_text()))
 for path in (root / "examples/migrations").glob("*/heni.json"):
     manifest_validator.validate(json.loads(path.read_text()))
 schema = json.loads((root / "schemas/report-v1.schema.json").read_text())
