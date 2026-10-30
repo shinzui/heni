@@ -23,6 +23,8 @@ Proposed by [Nagare](mori://shinzui/nagare) while assessing whether Heni could r
 mutation sweep. Not a dependency: Nagare keeps its own sweep until Heni can run the same
 catalogue at comparable cost.
 
+Implementation is planned in [ExecPlan 10: Reuse incremental Cabal builds across worker baselines and candidates](../plans/10-reuse-incremental-cabal-builds-across-worker-baselines-and-candidates.md).
+
 ## Context
 
 Nagare's catalogue has 189 records (188 `test-fails`, one `build-fails`) using 150 distinct test

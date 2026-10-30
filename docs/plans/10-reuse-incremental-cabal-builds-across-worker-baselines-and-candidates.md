@@ -10,6 +10,12 @@ provenance:
     model: "gpt-6-astra"
     harness: "codex-cli"
     at: 2026-10-30T13:09:46Z
+  revisions:
+    - model: "gpt-6-astra"
+      harness: "codex-cli"
+      at: 2026-10-30T13:14:16Z
+      mode: "update"
+      note: "Add explicit bidirectional links between ExecPlan 10 and IR-1."
 ---
 
 
@@ -20,7 +26,7 @@ This ExecPlan is a living document. Update Progress, Surprises & Discoveries, De
 ## Purpose / Big Picture
 
 
-Implement `docs/improvement-requests/reuse-one-incremental-cabal-build-per-worker-across-baselines-and-candidates.md` (IR-1). A manifest author will opt into Cabal reuse and run many different baseline test selectors and mutations using one private incremental build directory per worker. A cold build starts without that directory; an incremental build updates existing artifacts. For a campaign with one stable build contract and no infrastructure failures, N cases on W workers must cause at most W cold builds, including cases with distinct selectors, compile rejection, and stale edits. Fresh execution remains the default and the reference for verdict parity.
+Implement [IR-1: Reuse one incremental Cabal build per worker across baselines and candidates](../improvement-requests/reuse-one-incremental-cabal-build-per-worker-across-baselines-and-candidates.md). A manifest author will opt into Cabal reuse and run many different baseline test selectors and mutations using one private incremental build directory per worker. A cold build starts without that directory; an incremental build updates existing artifacts. For a campaign with one stable build contract and no infrastructure failures, N cases on W workers must cause at most W cold builds, including cases with distinct selectors, compile rejection, and stale edits. Fresh execution remains the default and the reference for verdict parity.
 
 The delivered example and regression suite must show actual Cabal builds, matching fresh/reused verdicts, and refusal of stale or missing successful-build receipts before any test executes. A receipt is a small completion record, not proof that the compiler's invalidation algorithm is correct.
 
