@@ -181,5 +181,26 @@ in  Schema.Project::{
         , description = Some
             "Friction met while implementing plans, before triage into bug reports and requests."
         }
+      , Schema.OkfBundle::{
+        , name = "improvement-requests"
+        , path = "docs/improvement-requests"
+        , profileBinding = Some
+            ( Schema.ProfileBinding.Published
+                Schema.PinnedImport::{
+                , publisher = "shinzui/okf-profiles"
+                , publisherRef = Some Schema.MoriRef::{
+                  , namespace = "shinzui"
+                  , name = "okf-profiles"
+                  }
+                , export = Some "coordination.improvementRequests"
+                , version = Some "v0.25.0"
+                , pin = Some
+                    "sha256:ec74cc6f7b8ee1a5af81ee7fc8804f35cf2c9ba4010671d9e881da72eb6719d3"
+                }
+            )
+        , okfVersion = "0.2"
+        , description = Some
+            "Cross-repository improvement requests with stable IR handles."
+        }
       ]
     }
